@@ -1,0 +1,35 @@
+#사용자에게 보여줄 문장
+title: "U-01 root 계정 원격 접속 제한"
+
+pass:
+  summary: "root 계정의 원격 직접 접속이 차단되어 있습니다."
+  detail: >
+    원격 터미널 서비스를 사용하지 않거나,
+    사용 중인 서비스에서 root 직접 로그인이 제한되어 있어 양호합니다.
+
+fail:
+  summary: "root 계정의 원격 직접 접속이 허용되어 있습니다."
+  detail: >
+    현재 서버는 root 계정의 원격 직접 로그인을 허용하고 있어,
+    비밀번호 추측 또는 무차별 대입 공격 성공 시
+    즉시 최고권한 탈취로 이어질 수 있습니다.
+
+manual:
+  summary: "자동 판정이 어렵습니다."
+  detail: >
+    설정 파일 누락, 비표준 설치 경로, 버전별 기본값 차이 등으로 인해
+    추가 확인이 필요합니다.
+
+remediation:
+  summary: "SSH는 PermitRootLogin no 로 설정하고, Telnet 계열은 root 직접 접속을 차단해야 합니다."
+  actions:
+    - "SSH 사용 시 /etc/ssh/sshd_config 에서 PermitRootLogin no 로 설정합니다."
+    - "설정 변경 후 SSH 서비스를 재시작 또는 reload 하여 반영 여부를 확인합니다."
+    - "Telnet 계열 사용 시 /etc/pam.d/login 에 pam_securetty 적용 여부를 확인합니다."
+    - "/etc/securetty 에서 pts/* 항목을 제거하여 원격 root 로그인을 차단합니다."
+    - "운영상 필요 시 일반 사용자 로그인 후 sudo 또는 su 를 통해 관리자 권한을 사용하도록 전환합니다."
+
+evidence_labels:
+  permit_root_login: "sshd_config 내 PermitRootLogin 값"
+  pam_securetty: "/etc/pam.d/login 내 pam_securetty 적용 여부"
+  securetty_pts_entries: "/etc/securetty 내 pts 허용 여부"

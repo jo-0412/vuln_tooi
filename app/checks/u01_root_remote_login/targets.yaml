@@ -1,1 +1,68 @@
 #무엇을 읽을지 적는 파일
+files:
+  required:
+    - path: "/etc/ssh/sshd_config"
+      type: "config"
+      parser: "sshd_config"
+      description: "SSH root 직접 로그인 허용 여부 확인"
+
+  optional:
+    - path: "/etc/pam.d/login"
+      type: "config"
+      parser: "pam"
+      description: "pam_securetty 적용 여부 확인"
+
+    - path: "/etc/securetty"
+      type: "config"
+      parser: "line_list"
+      description: "root 로그인 허용 터미널 목록 확인"
+
+    - path: "/etc/default/login"
+      type: "config"
+      parser: "key_value"
+      description: "일부 Unix 계열 원격 root 로그인 관련 설정 확인"
+
+    - path: "/etc/security/user"
+      type: "config"
+      parser: "key_value"
+      description: "일부 Unix 계열 root 원격 로그인 관련 설정 확인"
+
+    - path: "/opt/ssh/etc/sshd_config"
+      type: "config"
+      parser: "sshd_config"
+      description: "비표준 SSH 설치 경로 확인"
+
+commands:
+  - name: "check_ssh_root_login"
+    command: "grep -i '^PermitRootLogin' /etc/ssh/sshd_config"
+    description: "SSH 설정에서 PermitRootLogin 값 확인"
+
+  - name: "check_pam_securetty"
+    command: "grep pam_securetty /etc/pam.d/login"
+    description: "pam_securetty 적용 여부 확인"
+
+  - name: "check_securetty_pts"
+    command: "grep '^pts' /etc/securetty"
+    description: "/etc/securetty 내 pts 항목 존재 여부 확인"
+
+services:
+  - name: "ssh"
+    aliases: ["sshd"]
+    description: "SSH 서비스 사용 여부 확인"
+
+  - name: "telnet"
+    aliases: ["telnet.socket", "inetd", "xinetd"]
+    description: "Telnet 계열 서비스 사용 여부 확인"
+
+evidence:
+  - key: "permit_root_login"
+    source: "/etc/ssh/sshd_config"
+    description: "PermitRootLogin 설정값"
+
+  - key: "pam_securetty"
+    source: "/etc/pam.d/login"
+    description: "pam_securetty 적용 여부"
+
+  - key: "securetty_pts_entries"
+    source: "/etc/securetty"
+    description: "pts/* 허용 여부"

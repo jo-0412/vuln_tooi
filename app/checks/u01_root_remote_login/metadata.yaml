@@ -1,1 +1,29 @@
 #이 항목이 무엇인지 설명하는 파일
+code: "U-01"
+name: "root 계정 원격 접속 제한"
+severity: "high"
+category: "account_management"
+requires_root: "partial"
+
+summary: >
+  외부 비인가자가 root 계정으로 직접 원격 접속해
+  시스템을 장악하는 것을 원천 차단하기 위한 항목이다.
+
+description: >
+  원격 터미널 서비스를 사용하지 않거나,
+  사용 시 root 직접 접속을 차단해야 한다.
+
+purpose: >
+  root 계정의 원격 직접 로그인을 제한하여
+  비밀번호 추측, 무차별 대입, 관리자 계정 노출에 따른
+  최고권한 탈취 위험을 줄인다.
+
+platform: "debian_family"
+
+references:
+  - "/etc/ssh/sshd_config"
+  - "/etc/pam.d/login"
+  - "/etc/securetty"
+  - "/etc/default/login"
+  - "/etc/security/user"
+  - "/opt/ssh/etc/sshd_config"
