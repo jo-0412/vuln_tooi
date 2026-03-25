@@ -1,1 +1,157 @@
 KISA 기술적 취약점 분석·평가방법 상세가이드를 기반으로 한 취약점 점검 도구 개발
+
+# 프로젝트 구조
+
+이 프로젝트는 **리눅스 서버 취약점 점검 도구**이며,  
+각 점검 항목을 독립적으로 관리하고, 공통 수집 로직과 정책 파일을 분리하여  
+유지보수와 확장이 쉽도록 구성되어 있습니다.
+
+---
+
+## 디렉터리 구조
+
+```text
+vuln-management-tool/
+├─ app/
+│  ├─ main/
+│  │  ├─ entry.py
+│  │  ├─ runner.py
+│  │  └─ dispatcher.py
+│  │
+│  ├─ checks/
+│  │  ├─ u01_root_remote_login/
+│  │  │  ├─ metadata.yaml
+│  │  │  ├─ targets.yaml
+│  │  │  ├─ policy.yaml
+│  │  │  └─ messages.yaml
+│  │  ├─ u02_password_policy/
+│  │  ├─ u03_account_lockout/
+│  │  ├─ u04_password_file_protection/
+│  │  ├─ u05_uid0_only_root/
+│  │  ├─ u18_shadow_permission/
+│  │  ├─ u23_suid_sgid_sticky/
+│  │  ├─ u28_ip_port_restriction/
+│  │  ├─ u64_security_patch/
+│  │  └─ u66_system_logging/
+│  │
+│  ├─ collectors/
+│  │  ├─ file_reader.py
+│  │  ├─ stat_reader.py
+│  │  ├─ passwd_reader.py
+│  │  ├─ pam_reader.py
+│  │  ├─ firewall_reader.py
+│  │  ├─ package_reader.py
+│  │  ├─ service_reader.py
+│  │  └─ filesystem_scanner.py
+│  │
+│  ├─ policies/
+│  │  ├─ default_debian.yaml
+│  │  ├─ strict_enterprise.yaml
+│  │  └─ custom_example.yaml
+│  │
+│  ├─ models/
+│  │  ├─ check_item.py
+│  │  ├─ check_result.py
+│  │  ├─ evidence.py
+│  │  └─ severity.py
+│  │
+│  ├─ output/
+│  │  ├─ console_formatter.py
+│  │  ├─ json_formatter.py
+│  │  └─ html_formatter.py
+│  │
+│  └─ common/
+│     ├─ constants.py
+│     ├─ enums.py
+│     ├─ exceptions.py
+│     └─ utils.py
+│
+├─ config/
+│  ├─ app.yaml
+│  └─ logging.yaml
+│
+├─ docs/
+│  ├─ U-01.md
+│  ├─ U-02.md
+│  ├─ U-03.md
+│  └─ ...
+│
+├─ samples/
+│  ├─ sample_result_ok.json
+│  └─ sample_result_vuln.json
+│
+└─ reports/
+
+폴더별 역할
+app/main/
+
+프로그램 실행 흐름을 담당하는 영역입니다.
+
+entry.py
+프로그램 시작점입니다.
+runner.py
+전체 점검 실행 순서를 관리합니다.
+dispatcher.py
+선택한 점검 항목을 연결하고 호출합니다.
+app/checks/
+
+각 취약점 점검 항목을 독립적으로 관리하는 핵심 영역입니다.
+점검 기준, 읽을 대상, 메시지를 항목별로 분리하여 관리합니다.
+
+예: u01_root_remote_login/, u02_password_policy/
+
+app/collectors/
+
+시스템 정보를 읽어오는 공통 수집기 모음입니다.
+여러 점검 항목에서 재사용되는 로직을 담당합니다.
+
+file_reader.py : 설정 파일 읽기
+stat_reader.py : 파일 권한/소유자 확인
+passwd_reader.py : /etc/passwd 파싱
+pam_reader.py : PAM 설정 파싱
+firewall_reader.py : 방화벽 설정 확인
+package_reader.py : 패키지 및 업데이트 상태 확인
+service_reader.py : 서비스 상태 확인
+filesystem_scanner.py : 파일 시스템 전역 스캔
+app/policies/
+
+점검 기준 정책 파일을 보관하는 영역입니다.
+운영 환경이나 조직 기준에 따라 다른 정책을 적용할 수 있습니다.
+
+default_debian.yaml : 기본 Debian/Ubuntu 기준
+strict_enterprise.yaml : 강화된 기업 보안 기준
+custom_example.yaml : 사용자 정의 예시 정책
+app/models/
+
+점검 결과를 일정한 형식으로 표현하기 위한 데이터 구조입니다.
+
+check_item.py : 점검 항목 정보
+check_result.py : 점검 결과 정보
+evidence.py : 점검 근거 정보
+severity.py : 위험도 정보
+app/output/
+
+점검 결과를 출력 형식에 맞게 변환하는 영역입니다.
+
+console_formatter.py : 콘솔 출력
+json_formatter.py : JSON 저장
+html_formatter.py : HTML 보고서 생성
+app/common/
+
+프로젝트 전반에서 공통으로 사용하는 상수, 예외, 유틸리티를 모아둔 영역입니다.
+
+config/
+
+애플리케이션 전체 설정 파일을 관리합니다.
+
+docs/
+
+각 취약점 항목에 대한 상세 설명 문서를 보관합니다.
+
+samples/
+
+정상/취약 예시 결과 파일을 저장합니다.
+
+reports/
+
+실행 후 생성된 점검 보고서를 저장합니다.
