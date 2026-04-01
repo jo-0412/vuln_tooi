@@ -16,7 +16,7 @@ if __package__ is None or __package__ == "":
 from app.main.u01_runner import U01Runner
 from app.main.u02_runner import U02Runner
 from app.output.console_formatter import ConsoleFormatter
-
+from app.compat import to_text
 
 EXIT_CODE_MAP = {
     "PASS": 0,
@@ -70,7 +70,7 @@ def calculate_exit_code(results):
 
 
 def build_runners(check_code):
-    normalized = str(check_code).strip().upper()
+    normalized = to_text(check_code).strip().upper()
 
     if normalized == "U-01":
         return [U01Runner()]

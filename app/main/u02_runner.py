@@ -15,7 +15,7 @@ else:
 from app.collectors.file_reader import FileReader
 from app.collectors.pam_reader import PamReader
 from app.models.check_result import CheckResult
-
+from app.compat import to_text
 
 class U02Runner(object):
     """
@@ -492,13 +492,13 @@ class U02Runner(object):
         if current is None:
             return False
 
-        operator = str(constraint.get("operator", "==")).strip()
+        operator = to_text(constraint.get("operator", "==")).strip()
         expected = constraint.get("value")
 
         if isinstance(current, bool):
             current_value = current
         else:
-            current_text = str(current).strip()
+            current_text = to_text(current).strip()
             if self._is_int_like(current_text) and isinstance(expected, (int, float)):
                 current_value = int(current_text)
             else:
@@ -532,7 +532,7 @@ class U02Runner(object):
         for item in items:
             if item is None:
                 continue
-            normalized = str(item).strip()
+            normalized = to_text(item).strip()
             if not normalized:
                 continue
             if normalized not in seen:
@@ -568,7 +568,7 @@ class U02Runner(object):
         return data
 
     def _get_message(self, section, field, default=""):
-        return str(self.messages.get(section, {}).get(field, default))
+        return to_text(self.messages.get(section, {}).get(field, default))
 
     @staticmethod
     def _merge_detail(base_detail, reasons):

@@ -16,7 +16,7 @@ else:
 from app.collectors.file_reader import FileReader
 from app.collectors.service_reader import ServiceReader
 from app.models.check_result import CheckResult
-
+from app.compat import to_text
 
 class U01Runner(object):
     """
@@ -311,7 +311,7 @@ class U01Runner(object):
         for section in ("required", "optional"):
             for item in files.get(section, []):
                 if item.get("parser") == parser_name and item.get("path"):
-                    paths.append(str(item["path"]))
+                    paths.append(to_text(item["path"]))
         return paths
 
     def _read_first_readable(self, paths):
@@ -406,7 +406,7 @@ class U01Runner(object):
     def _normalize_value_list(values):
         normalized = set()
         for value in values:
-            normalized.add(str(value).strip().lower())
+            normalized.add(to_text(value).strip().lower())
         return normalized
 
     def _load_configs(self):
@@ -436,7 +436,7 @@ class U01Runner(object):
         return data
 
     def _get_message(self, section, field, default=""):
-        return str(self.messages.get(section, {}).get(field, default))
+        return to_text(self.messages.get(section, {}).get(field, default))
 
     @staticmethod
     def _merge_detail(base_detail, reasons):
