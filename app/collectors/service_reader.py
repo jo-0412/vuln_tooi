@@ -1,72 +1,126 @@
-from __future__ import annotations
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function, unicode_literals
 
-from dataclasses import asdict, dataclass
-from typing import Any, Iterable, Optional
-import shutil
 import subprocess
 
+try:
+    import shutil
+except Exception:
+    shutil = None
 
-@dataclass
-class ServiceCommandResult:
-    command: list[str]
-    returncode: int
-    stdout: str
-    stderr: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-
-@dataclass
-class ServiceStatusResult:
-    query_name: str
-    matched_name: Optional[str]
-    systemd_available: bool
-    exists: bool
-    installed: bool
-    enabled: Optional[bool]
-    active: Optional[bool]
-    load_state: Optional[str]
-    unit_file_state: Optional[str]
-    active_state: Optional[str]
-    sub_state: Optional[str]
-    fragment_path: Optional[str]
-    status: str
-    success: bool
-    message: str
-    error_type: Optional[str] = None
-    error_detail: Optional[str] = None
-    evidence: Optional[dict[str, Any]] = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+try:
+    from distutils.spawn import find_executable
+except Exception:  # pragma: no cover
+    find_executable = None
 
 
-class ServiceReader:
+def _to_text(value, encoding="utf-8", errors="replace"):
+    if value is None:
+        return ""
+    try:
+        return value.decode(encoding, errors)
+    except Exception:
+        try:
+            return str(value)
+        except Exception:
+            return ""
+
+
+class ServiceCommandResult(object):
+    def __init__(self, command, returncode, stdout, stderr):
+        self.command = command
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+    def to_dict(self):
+        return {
+            "command": self.command,
+            "returncode": self.returncode,
+            "stdout": self.stdout,
+            "stderr": self.stderr,
+        }
+
+
+class ServiceStatusResult(object):
+    def __init__(self, query_name, matched_name, systemd_available,
+                 exists, installed, enabled, active, load_state,
+                 unit_file_state, active_state, sub_state,
+                 fragment_path, status, success, message,
+                 error_type=None, error_detail=None, evidence=None):
+        self.query_name = query_name
+        self.matched_name = matched_name
+        self.systemd_available = systemd_available
+        self.exists = exists
+        self.installed = installed
+        self.enabled = enabled
+        self.active = active
+        self.load_state = load_state
+        self.unit_file_state = unit_file_state
+        self.active_state = active_state
+        self.sub_state = sub_state
+        self.fragment_path = fragment_path
+        self.status = status
+        self.success = success
+        self.message = message
+        self.error_type = error_type
+        self.error_detail = error_detail
+        self.evidence = evidence or {}
+
+    def to_dict(self):
+        return {
+            "query_name": self.query_name,
+            "matched_name": self.matched_name,
+            "systemd_available": self.systemd_available,
+            "exists": self.exists,
+            "installed": self.installed,
+            "enabled": self.enabled,
+            "active": self.active,
+            "load_state": self.load_state,
+            "unit_file_state": self.unit_file_state,
+            "active_state": self.active_state,
+            "sub_state": self.sub_state,
+            "fragment_path": self.fragment_path,
+            "status": self.status,
+            "success": self.success,
+            "message": self.message,
+            "error_type": self.error_type,
+            "error_detail": self.error_detail,
+            "evidence": self.evidence,
+        }
+
+
+class ServiceReader(object):
     """
     systemd 기반 공통 서비스 상태 수집기.
     특정 취약점 항목(U-01 등)에 의존하지 않고,
     서비스의 존재 여부 / 설치 여부 / 활성화 여부 / 실행 여부를 표준 형식으로 반환한다.
     """
 
-    def __init__(self, timeout: int = 5) -> None:
+    def __init__(self, timeout=5):
         self.timeout = timeout
 
-    def is_systemd_available(self) -> bool:
-        """
-        systemctl 명령 사용 가능 여부 확인
-        """
-        return shutil.which("systemctl") is not None
+    def _which(self, name):
+        if shutil is not None and hasattr(shutil, "which"):
+            try:
+                return shutil.which(name)
+            except Exception:
+                pass
 
-    def inspect(
-        self,
-        name: str,
-        *,
-        aliases: Optional[list[str]] = None,
-    ) -> ServiceStatusResult:
-        """
-        하나의 서비스(또는 별칭 목록)를 확인한다.
-        """
+        if find_executable is not None:
+            try:
+                return find_executable(name)
+            except Exception:
+                pass
+
+        return None
+
+    def is_systemd_available(self):
+        return self._which("systemctl") is not None
+
+    def inspect(self, name, aliases=None):
+        aliases = aliases or []
+
         if not self.is_systemd_available():
             return ServiceStatusResult(
                 query_name=name,
@@ -88,8 +142,8 @@ class ServiceReader:
                 evidence={"checked_candidates": []},
             )
 
-        candidates = self._build_candidates(name, aliases or [])
-        last_evidence: dict[str, Any] = {"checked_candidates": candidates, "commands": []}
+        candidates = self._build_candidates(name, aliases)
+        last_evidence = {"checked_candidates": candidates, "commands": []}
 
         for candidate in candidates:
             cmd_result = self._run_show(candidate)
@@ -109,7 +163,7 @@ class ServiceReader:
             exists = load_state is not None
             installed = load_state not in (None, "not-found")
             enabled = self._to_enabled(unit_file_state) if installed else False
-            active = active_state == "active" if installed else False
+            active = (active_state == "active") if installed else False
 
             if installed:
                 return ServiceStatusResult(
@@ -151,42 +205,32 @@ class ServiceReader:
             evidence=last_evidence,
         )
 
-    def inspect_many(
-        self,
-        services: Iterable[dict[str, Any] | str],
-    ) -> list[ServiceStatusResult]:
-        """
-        여러 서비스를 순차적으로 확인한다.
-
-        입력 예시:
-        - ["ssh", "cron"]
-        - [{"name": "ssh", "aliases": ["sshd"]}, {"name": "telnet", "aliases": ["inetd", "xinetd"]}]
-        """
-        results: list[ServiceStatusResult] = []
+    def inspect_many(self, services):
+        results = []
 
         for item in services:
-            if isinstance(item, str):
-                results.append(self.inspect(item))
-            else:
+            if isinstance(item, dict):
                 name = item.get("name", "")
                 aliases = item.get("aliases", [])
                 results.append(self.inspect(name, aliases=aliases))
+            else:
+                results.append(self.inspect(item))
 
         return results
 
-    def is_active(self, name: str, *, aliases: Optional[list[str]] = None) -> bool:
+    def is_active(self, name, aliases=None):
         result = self.inspect(name, aliases=aliases)
         return bool(result.active)
 
-    def is_enabled(self, name: str, *, aliases: Optional[list[str]] = None) -> bool:
+    def is_enabled(self, name, aliases=None):
         result = self.inspect(name, aliases=aliases)
         return bool(result.enabled)
 
-    def is_installed(self, name: str, *, aliases: Optional[list[str]] = None) -> bool:
+    def is_installed(self, name, aliases=None):
         result = self.inspect(name, aliases=aliases)
         return bool(result.installed)
 
-    def _run_show(self, unit_name: str) -> ServiceCommandResult:
+    def _run_show(self, unit_name):
         command = [
             "systemctl",
             "show",
@@ -197,26 +241,18 @@ class ServiceReader:
         ]
 
         try:
-            completed = subprocess.run(
+            proc = subprocess.Popen(
                 command,
-                text=True,
-                capture_output=True,
-                timeout=self.timeout,
-                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
             )
-            return ServiceCommandResult(
-                command=command,
-                returncode=completed.returncode,
-                stdout=completed.stdout.strip(),
-                stderr=completed.stderr.strip(),
-            )
+            stdout, stderr = proc.communicate()
 
-        except subprocess.TimeoutExpired as exc:
             return ServiceCommandResult(
                 command=command,
-                returncode=124,
-                stdout="",
-                stderr=f"timeout: {exc}",
+                returncode=proc.returncode,
+                stdout=_to_text(stdout).strip(),
+                stderr=_to_text(stderr).strip(),
             )
 
         except Exception as exc:
@@ -228,31 +264,22 @@ class ServiceReader:
             )
 
     @staticmethod
-    def _build_candidates(name: str, aliases: list[str]) -> list[str]:
-        """
-        확인 후보 유닛명을 생성한다.
-        예:
-        - ssh -> ssh, ssh.service, ssh.socket
-        - sshd -> sshd, sshd.service, sshd.socket
-        """
-        ordered = [name, *aliases]
-        candidates: list[str] = []
-        seen: set[str] = set()
+    def _build_candidates(name, aliases):
+        ordered = [name] + list(aliases)
+        candidates = []
+        seen = set()
 
         for item in ordered:
             if not item:
                 continue
 
             expanded = [item]
-
             if "." not in item:
-                expanded.extend(
-                    [
-                        f"{item}.service",
-                        f"{item}.socket",
-                        f"{item}.target",
-                    ]
-                )
+                expanded.extend([
+                    item + ".service",
+                    item + ".socket",
+                    item + ".target",
+                ])
 
             for unit in expanded:
                 if unit not in seen:
@@ -262,11 +289,8 @@ class ServiceReader:
         return candidates
 
     @staticmethod
-    def _parse_show_output(output: str) -> dict[str, str]:
-        """
-        systemctl show 결과를 key=value 딕셔너리로 변환
-        """
-        parsed: dict[str, str] = {}
+    def _parse_show_output(output):
+        parsed = {}
 
         for line in output.splitlines():
             if "=" not in line:
@@ -277,19 +301,19 @@ class ServiceReader:
         return parsed
 
     @staticmethod
-    def _to_enabled(unit_file_state: Optional[str]) -> Optional[bool]:
+    def _to_enabled(unit_file_state):
         if unit_file_state is None:
             return None
 
-        enabled_states = {
+        enabled_states = set([
             "enabled",
             "enabled-runtime",
             "linked",
             "linked-runtime",
             "alias",
-        }
+        ])
 
-        disabled_states = {
+        disabled_states = set([
             "disabled",
             "masked",
             "masked-runtime",
@@ -298,7 +322,7 @@ class ServiceReader:
             "generated",
             "transient",
             "bad",
-        }
+        ])
 
         if unit_file_state in enabled_states:
             return True
@@ -309,26 +333,11 @@ class ServiceReader:
         return None
 
 
-def inspect_service(
-    name: str,
-    *,
-    aliases: Optional[list[str]] = None,
-    timeout: int = 5,
-) -> ServiceStatusResult:
-    """
-    간단 호출용 헬퍼 함수.
-    """
+def inspect_service(name, aliases=None, timeout=5):
     reader = ServiceReader(timeout=timeout)
     return reader.inspect(name, aliases=aliases)
 
 
-def inspect_services(
-    services: Iterable[dict[str, Any] | str],
-    *,
-    timeout: int = 5,
-) -> list[ServiceStatusResult]:
-    """
-    여러 서비스 간단 호출용 헬퍼 함수.
-    """
+def inspect_services(services, timeout=5):
     reader = ServiceReader(timeout=timeout)
     return reader.inspect_many(services)

@@ -1,0 +1,46 @@
+title: "U-03 계정 잠금 임계값 설정"
+
+pass:
+  summary: "계정 잠금 임계값이 적절히 설정되어 있습니다."
+  detail: >
+    로그인 실패 누적에 따른 계정 잠금 정책이 적용되어 있어
+    brute force 및 dictionary 공격에 대한 기본 방어 수준이 확보되어 있습니다.
+
+fail:
+  summary: "계정 잠금 임계값이 없거나 기준에 맞지 않습니다."
+  detail: >
+    로그인 실패 누적에 따른 계정 잠금이 없어 공격자가 무제한으로 비밀번호를 시도할 수 있습니다.
+
+manual:
+  summary: "자동 판정이 어렵습니다."
+  detail: >
+    설정 파일 누락, 비표준 PAM 구성, 배포판별 차이 등으로 인해
+    추가 확인이 필요합니다.
+
+remediation:
+  summary: "계정 잠금 임계값을 10회 이하로 설정하고 잠금 해제 및 PAM 적용 순서를 올바르게 구성해야 합니다."
+  actions:
+    - "pam_tally.so, pam_tally2.so 또는 pam_faillock.so 중 하나를 사용하여 로그인 실패 누적 정책을 적용합니다."
+    - "deny 값을 10 이하로 설정합니다."
+    - "unlock_time 값을 설정하여 잠금 해제 시간을 명시합니다."
+    - "pam_tally 또는 pam_tally2 사용 시 account 체인에 reset 옵션 또는 동등한 후처리를 구성합니다."
+    - "pam_faillock 사용 시 auth 체인과 account 체인에 모두 적절히 적용되어 있는지 확인합니다."
+    - "배포판에서 authselect 를 사용하는 경우 현재 활성 프로파일과 기능을 함께 점검합니다."
+    - "PAM 파일 수정은 로그인 자체에 영향을 줄 수 있으므로 백업 후 적용합니다."
+
+evidence_labels:
+  lockout_backend: "계정 잠금 정책 구현 방식"
+  deny: "계정 잠금 임계값"
+  unlock_time: "잠금 해제 시간"
+  pam_tally_module: "pam_tally.so 적용 여부"
+  pam_tally2_module: "pam_tally2.so 적용 여부"
+  pam_faillock_auth_module: "pam_faillock.so auth 체인 적용 여부"
+  pam_faillock_account_module: "pam_faillock.so account 체인 적용 여부"
+  reset_option: "reset 옵션 적용 여부"
+  authselect_profile: "authselect 활성 프로파일"
+
+notes:
+  - "Debian 계열은 /etc/pam.d/common-auth, /etc/pam.d/common-account 를 우선 확인합니다."
+  - "RHEL 계열 호환 처리를 위해 system-auth, password-auth 는 optional 로 둡니다."
+  - "일부 환경에서는 deny, unlock_time 이 PAM 모듈 옵션이 아니라 faillock.conf 에 정의될 수 있습니다."
+  - "PAM 모듈 순서나 인터페이스 구성이 잘못되면 로그인 장애가 발생할 수 있습니다."

@@ -1,68 +1,97 @@
-from __future__ import annotations
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function, unicode_literals
 
-from dataclasses import asdict, dataclass
-from pathlib import Path
-from typing import Any, Iterable, Optional
+import errno
 import os
 import stat
 
 
-@dataclass
-class FileMetadata:
-    path: str
-    exists: bool
-    is_file: bool
-    is_symlink: bool
-    size: Optional[int]
-    mode: Optional[str]
-    uid: Optional[int]
-    gid: Optional[int]
+def _format_mode(st_mode):
+    try:
+        if hasattr(stat, "filemode"):
+            return stat.filemode(st_mode)
+    except Exception:
+        pass
+    return oct(st_mode & 0o7777)
 
 
-@dataclass
-class FileReadResult:
-    path: str
-    status: str
-    success: bool
-    message: str
-    metadata: FileMetadata
-    content: Optional[str] = None
-    encoding: Optional[str] = None
-    line_count: int = 0
-    error_type: Optional[str] = None
-    error_detail: Optional[str] = None
+class FileMetadata(object):
+    def __init__(self, path, exists, is_file, is_symlink,
+                 size=None, mode=None, uid=None, gid=None):
+        self.path = path
+        self.exists = exists
+        self.is_file = is_file
+        self.is_symlink = is_symlink
+        self.size = size
+        self.mode = mode
+        self.uid = uid
+        self.gid = gid
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+    def to_dict(self):
+        return {
+            "path": self.path,
+            "exists": self.exists,
+            "is_file": self.is_file,
+            "is_symlink": self.is_symlink,
+            "size": self.size,
+            "mode": self.mode,
+            "uid": self.uid,
+            "gid": self.gid,
+        }
 
 
-class FileReader:
+class FileReadResult(object):
+    def __init__(self, path, status, success, message, metadata,
+                 content=None, encoding=None, line_count=0,
+                 error_type=None, error_detail=None):
+        self.path = path
+        self.status = status
+        self.success = success
+        self.message = message
+        self.metadata = metadata
+        self.content = content
+        self.encoding = encoding
+        self.line_count = line_count
+        self.error_type = error_type
+        self.error_detail = error_detail
+
+    def to_dict(self):
+        return {
+            "path": self.path,
+            "status": self.status,
+            "success": self.success,
+            "message": self.message,
+            "metadata": self.metadata.to_dict(),
+            "content": self.content,
+            "encoding": self.encoding,
+            "line_count": self.line_count,
+            "error_type": self.error_type,
+            "error_detail": self.error_detail,
+        }
+
+
+class FileReader(object):
     """
     공통 파일 읽기 수집기.
     특정 취약점 항목(U-01 등)에 의존하지 않고,
     파일 존재/권한/내용 읽기 결과를 표준 형식으로 반환한다.
     """
 
-    def __init__(
-        self,
-        default_encoding: str = "utf-8",
-        default_errors: str = "replace",
-        default_max_bytes: Optional[int] = None,
-    ) -> None:
+    def __init__(self, default_encoding="utf-8",
+                 default_errors="replace", default_max_bytes=None):
         self.default_encoding = default_encoding
         self.default_errors = default_errors
         self.default_max_bytes = default_max_bytes
 
-    def inspect(self, path: str | Path) -> FileReadResult:
-        """
-        파일 내용은 읽지 않고 메타데이터만 확인한다.
-        """
-        target = Path(path)
-        metadata = self._build_metadata(target)
+    def exists(self, path):
+        return os.path.exists(path)
+
+    def inspect(self, path):
+        metadata = self._build_metadata(path)
 
         if not metadata.exists:
             return FileReadResult(
-                path=str(target),
+                path=path,
                 status="not_found",
                 success=False,
                 message="파일이 존재하지 않습니다.",
@@ -72,7 +101,7 @@ class FileReader:
 
         if not metadata.is_file:
             return FileReadResult(
-                path=str(target),
+                path=path,
                 status="not_file",
                 success=False,
                 message="경로가 일반 파일이 아닙니다.",
@@ -81,31 +110,20 @@ class FileReader:
             )
 
         return FileReadResult(
-            path=str(target),
+            path=path,
             status="ok",
             success=True,
             message="파일 메타데이터 확인에 성공했습니다.",
             metadata=metadata,
         )
 
-    def read(
-        self,
-        path: str | Path,
-        *,
-        encoding: Optional[str] = None,
-        errors: Optional[str] = None,
-        max_bytes: Optional[int] = None,
-        follow_symlinks: bool = True,
-    ) -> FileReadResult:
-        """
-        파일을 안전하게 읽어 표준 결과로 반환한다.
-        """
-        target = Path(path)
-        metadata = self._build_metadata(target)
+    def read(self, path, encoding=None, errors=None,
+             max_bytes=None, follow_symlinks=True):
+        metadata = self._build_metadata(path)
 
         if not metadata.exists:
             return FileReadResult(
-                path=str(target),
+                path=path,
                 status="not_found",
                 success=False,
                 message="파일이 존재하지 않습니다.",
@@ -115,7 +133,7 @@ class FileReader:
 
         if not metadata.is_file:
             return FileReadResult(
-                path=str(target),
+                path=path,
                 status="not_file",
                 success=False,
                 message="경로가 일반 파일이 아닙니다.",
@@ -125,7 +143,7 @@ class FileReader:
 
         if metadata.is_symlink and not follow_symlinks:
             return FileReadResult(
-                path=str(target),
+                path=path,
                 status="symlink_blocked",
                 success=False,
                 message="심볼릭 링크는 허용되지 않습니다.",
@@ -138,12 +156,12 @@ class FileReader:
         use_max_bytes = max_bytes if max_bytes is not None else self.default_max_bytes
 
         try:
-            raw = self._read_bytes(target, use_max_bytes)
-            content = raw.decode(use_encoding, errors=use_errors)
+            raw = self._read_bytes(path, use_max_bytes)
+            content = raw.decode(use_encoding, use_errors)
             line_count = self._count_lines(content)
 
             return FileReadResult(
-                path=str(target),
+                path=path,
                 status="ok",
                 success=True,
                 message="파일 읽기에 성공했습니다.",
@@ -153,31 +171,33 @@ class FileReader:
                 line_count=line_count,
             )
 
-        except PermissionError as exc:
-            return FileReadResult(
-                path=str(target),
-                status="permission_denied",
-                success=False,
-                message="파일 읽기 권한이 없습니다.",
-                metadata=metadata,
-                error_type=type(exc).__name__,
-                error_detail=str(exc),
-            )
+        except (IOError, OSError) as exc:
+            err_no = getattr(exc, "errno", None)
 
-        except IsADirectoryError as exc:
-            return FileReadResult(
-                path=str(target),
-                status="not_file",
-                success=False,
-                message="경로가 디렉터리입니다.",
-                metadata=metadata,
-                error_type=type(exc).__name__,
-                error_detail=str(exc),
-            )
+            if err_no == errno.EACCES:
+                return FileReadResult(
+                    path=path,
+                    status="permission_denied",
+                    success=False,
+                    message="파일 읽기 권한이 없습니다.",
+                    metadata=metadata,
+                    error_type=type(exc).__name__,
+                    error_detail=str(exc),
+                )
 
-        except OSError as exc:
+            if err_no == errno.EISDIR:
+                return FileReadResult(
+                    path=path,
+                    status="not_file",
+                    success=False,
+                    message="경로가 디렉터리입니다.",
+                    metadata=metadata,
+                    error_type=type(exc).__name__,
+                    error_detail=str(exc),
+                )
+
             return FileReadResult(
-                path=str(target),
+                path=path,
                 status="read_error",
                 success=False,
                 message="파일 읽기 중 운영체제 오류가 발생했습니다.",
@@ -188,7 +208,7 @@ class FileReader:
 
         except Exception as exc:
             return FileReadResult(
-                path=str(target),
+                path=path,
                 status="unknown_error",
                 success=False,
                 message="알 수 없는 오류가 발생했습니다.",
@@ -197,19 +217,9 @@ class FileReader:
                 error_detail=str(exc),
             )
 
-    def read_many(
-        self,
-        paths: Iterable[str | Path],
-        *,
-        encoding: Optional[str] = None,
-        errors: Optional[str] = None,
-        max_bytes: Optional[int] = None,
-        follow_symlinks: bool = True,
-    ) -> list[FileReadResult]:
-        """
-        여러 파일을 순차적으로 읽는다.
-        """
-        results: list[FileReadResult] = []
+    def read_many(self, paths, encoding=None, errors=None,
+                  max_bytes=None, follow_symlinks=True):
+        results = []
         for path in paths:
             results.append(
                 self.read(
@@ -222,53 +232,25 @@ class FileReader:
             )
         return results
 
-    def exists(self, path: str | Path) -> bool:
-        return Path(path).exists()
-
-    def _build_metadata(self, path: Path) -> FileMetadata:
+    def _build_metadata(self, path):
         try:
-            st = path.lstat()
-            mode_str = stat.filemode(st.st_mode)
+            st = os.lstat(path)
+            mode_str = _format_mode(st.st_mode)
 
             return FileMetadata(
-                path=str(path),
+                path=path,
                 exists=True,
-                is_file=path.is_file(),
-                is_symlink=path.is_symlink(),
+                is_file=os.path.isfile(path),
+                is_symlink=os.path.islink(path),
                 size=st.st_size,
                 mode=mode_str,
                 uid=st.st_uid,
                 gid=st.st_gid,
             )
 
-        except FileNotFoundError:
+        except (IOError, OSError):
             return FileMetadata(
-                path=str(path),
-                exists=False,
-                is_file=False,
-                is_symlink=False,
-                size=None,
-                mode=None,
-                uid=None,
-                gid=None,
-            )
-
-        except PermissionError:
-            # 파일 존재는 하지만 stat 확인이 제한될 수도 있음
-            return FileMetadata(
-                path=str(path),
-                exists=True,
-                is_file=False,
-                is_symlink=False,
-                size=None,
-                mode=None,
-                uid=None,
-                gid=None,
-            )
-
-        except OSError:
-            return FileMetadata(
-                path=str(path),
+                path=path,
                 exists=False,
                 is_file=False,
                 is_symlink=False,
@@ -279,30 +261,24 @@ class FileReader:
             )
 
     @staticmethod
-    def _read_bytes(path: Path, max_bytes: Optional[int]) -> bytes:
-        with path.open("rb") as f:
+    def _read_bytes(path, max_bytes):
+        f = open(path, "rb")
+        try:
             if max_bytes is None:
                 return f.read()
             return f.read(max_bytes)
+        finally:
+            f.close()
 
     @staticmethod
-    def _count_lines(content: str) -> int:
+    def _count_lines(content):
         if not content:
             return 0
         return len(content.splitlines())
 
 
-def read_file(
-    path: str | Path,
-    *,
-    encoding: str = "utf-8",
-    errors: str = "replace",
-    max_bytes: Optional[int] = None,
-    follow_symlinks: bool = True,
-) -> FileReadResult:
-    """
-    간단 호출용 헬퍼 함수.
-    """
+def read_file(path, encoding="utf-8", errors="replace",
+              max_bytes=None, follow_symlinks=True):
     reader = FileReader(
         default_encoding=encoding,
         default_errors=errors,
@@ -317,9 +293,6 @@ def read_file(
     )
 
 
-def inspect_file(path: str | Path) -> FileReadResult:
-    """
-    메타데이터만 확인하는 간단 호출용 헬퍼 함수.
-    """
+def inspect_file(path):
     reader = FileReader()
     return reader.inspect(path)

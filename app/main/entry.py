@@ -1,14 +1,17 @@
-from __future__ import annotations
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
 import json
+import os
 import sys
-from pathlib import Path
 
 if __package__ is None or __package__ == "":
-    project_root = Path(__file__).resolve().parents[2]
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
+    project_root = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..")
+    )
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
 
 from app.main.u01_runner import U01Runner
 from app.main.u02_runner import U02Runner
@@ -23,8 +26,10 @@ EXIT_CODE_MAP = {
 }
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Debian 계열 리눅스 취약점 점검 도구")
+def build_parser():
+    parser = argparse.ArgumentParser(
+        description="Debian 계열 리눅스 취약점 점검 도구"
+    )
     parser.add_argument(
         "--json",
         action="store_true",
@@ -40,10 +45,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="콘솔 색상 출력 비활성화",
     )
+    parser.add_argument(
+        "--check",
+        default="ALL",
+        help="실행할 점검 항목 코드 (U-01, U-02, ALL)",
+    )
     return parser
 
 
-def calculate_exit_code(results: list) -> int:
+def calculate_exit_code(results):
     """
     여러 결과 중 가장 심각한 상태 기준으로 종료 코드 결정
     ERROR > FAIL > MANUAL > PASS
@@ -59,29 +69,52 @@ def calculate_exit_code(results: list) -> int:
     return EXIT_CODE_MAP["PASS"]
 
 
-def main() -> int:
+def build_runners(check_code):
+    normalized = str(check_code).strip().upper()
+
+    if normalized == "U-01":
+        return [U01Runner()]
+
+    if normalized == "U-02":
+        return [U02Runner()]
+
+    if normalized == "ALL":
+        return [
+            U01Runner(),
+            U02Runner(),
+        ]
+
+    return None
+
+
+def main():
     parser = build_parser()
     args = parser.parse_args()
 
-    runners = [
-        U01Runner(),
-        U02Runner(),
-    ]
+    runners = build_runners(args.check)
+    if runners is None:
+        print(
+            "현재 지원하지 않는 점검 항목입니다: {0}".format(args.check),
+            file=sys.stderr
+        )
+        return 4
 
-    results = [runner.run() for runner in runners]
+    results = []
+    for runner in runners:
+        results.append(runner.run())
 
     if args.json:
         print(
             json.dumps(
                 [result.to_dict() for result in results],
                 ensure_ascii=False,
-                indent=2,
+                indent=2
             )
         )
     else:
         formatter = ConsoleFormatter(use_color=not args.no_color)
         for idx, result in enumerate(results):
-            formatter.print(result, verbose=not args.quiet)
+            formatter.print_result(result, verbose=not args.quiet)
             if idx < len(results) - 1:
                 print("=" * 80)
 

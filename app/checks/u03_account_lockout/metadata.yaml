@@ -1,0 +1,30 @@
+code: "U-03"
+name: "계정 잠금 임계값 설정"
+severity: "high"
+category: "account_management"
+requires_root: "required"
+
+summary: >
+  로그인 실패가 반복될 경우 계정을 잠가
+  brute force 및 dictionary 공격을 무력화하기 위한 항목이다.
+
+description: >
+  계정 잠금 임계값, 잠금 해제 시간, PAM 인증 모듈 적용 여부를 점검하여
+  로그인 실패 누적에 따른 자동 방어 정책이 설정되어 있는지 확인한다.
+
+purpose: >
+  로그인 실패 횟수를 제한하여 공격자가 무제한으로 비밀번호를 시도하지 못하도록 하고,
+  계정 탈취 시도를 조기에 차단한다.
+
+platform: "debian_family"
+
+references:
+  - "/etc/pam.d/system-auth"
+  - "/etc/pam.d/password-auth"
+  - "/etc/security/faillock.conf"
+  - "/etc/pam.d/common-auth"
+  - "/etc/pam.d/common-account"
+  - "/etc/default/login"
+  - "/etc/security/policy.conf"
+  - "/etc/security/user"
+  - "/etc/default/security"

@@ -1,0 +1,126 @@
+check_type: "composite"
+
+profile: "default_debian"
+
+decision_order:
+  - "tally_rule"
+  - "faillock_rule"
+
+rules:
+  tally_rule:
+    description: >
+      pam_tally.so 또는 pam_tally2.so 를 사용하는 경우
+      common-auth 와 common-account 에 모듈이 적용되어 있고,
+      deny 값이 10 이하이며 account 체인에 reset 또는 적절한 후처리가 있어야 한다.
+
+    auth_targets:
+      - "/etc/pam.d/common-auth"
+      - "/etc/pam.d/system-auth"
+      - "/etc/pam.d/password-auth"
+
+    account_targets:
+      - "/etc/pam.d/common-account"
+
+    accepted_modules:
+      - "pam_tally.so"
+      - "pam_tally2.so"
+
+    required_options:
+      deny:
+        operator: "<="
+        value: 10
+
+    recommended_options:
+      unlock_time:
+        operator: ">="
+        value: 1
+
+    account_requirements:
+      requires_reset_option: true
+
+    when_module_missing: "manual"
+    when_option_missing: "fail"
+    when_file_missing: "manual"
+
+    pass_condition: >
+      pam_tally 또는 pam_tally2 가 auth/account 체인에 적용되어 있고
+      deny 값이 10 이하이며 account 체인에 reset 처리가 있는 경우
+
+    fail_condition: >
+      pam_tally 또는 pam_tally2 기반 설정이 있으나
+      deny 값이 없거나 10회를 초과하거나 account 후처리가 미흡한 경우
+
+  faillock_rule:
+    description: >
+      pam_faillock.so 를 사용하는 경우
+      common-auth 와 common-account 에 모듈이 적용되어 있고
+      deny 값이 10 이하로 설정되어 있어야 한다.
+
+    auth_targets:
+      - "/etc/pam.d/common-auth"
+      - "/etc/pam.d/system-auth"
+      - "/etc/pam.d/password-auth"
+
+    account_targets:
+      - "/etc/pam.d/common-account"
+
+    accepted_modules:
+      - "pam_faillock.so"
+
+    accepted_option_sources:
+      - "pam_module"
+      - "faillock_conf"
+
+    required_options:
+      deny:
+        operator: "<="
+        value: 10
+
+    recommended_options:
+      unlock_time:
+        operator: ">="
+        value: 1
+
+    required_auth_occurrences:
+      - "preauth"
+      - "authfail"
+
+    account_requirements:
+      requires_account_module: true
+
+    when_module_missing: "manual"
+    when_option_missing: "fail"
+    when_file_missing: "manual"
+
+    pass_condition: >
+      pam_faillock 가 auth/account 체인에 적용되어 있고
+      deny 값이 10 이하이며 unlock_time 또는 동등한 잠금 해제 정책이 설정된 경우
+
+    fail_condition: >
+      pam_faillock 기반 설정이 있으나
+      auth/account 체인 적용이 불완전하거나 deny 값이 없거나 10회를 초과하는 경우
+
+final_decision:
+  pass:
+    - "계정 잠금 임계값이 10회 이하로 설정되어 있음"
+    - "pam_tally, pam_tally2, pam_faillock 중 하나가 적절히 적용되어 있음"
+
+  fail:
+    - "계정 잠금 임계값이 없거나 10회를 초과함"
+    - "잠금 모듈이 적용되어 있지 않음"
+    - "auth/account 체인 구성이 불완전함"
+
+  manual:
+    - "설정 파일 누락 또는 비표준 경로 사용"
+    - "배포판 또는 PAM 구성 차이로 추가 확인 필요"
+
+evidence_required:
+  - "deny"
+  - "unlock_time"
+  - "pam_tally/pam_tally2/pam_faillock 적용 여부"
+  - "authselect 활성 기능"
+
+thresholds:
+  max_deny: 10
+  unlock_time_required: true
+  authselect_collection_recommended: true
