@@ -10,7 +10,8 @@ if __package__ is None or __package__ == "":
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
-from app.main.runner import U01Runner
+from app.main.u01_runner import U01Runner
+from app.main.u02_runner import U02Runner
 from app.output.console_formatter import ConsoleFormatter
 
 
@@ -24,11 +25,6 @@ EXIT_CODE_MAP = {
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Debian 계열 리눅스 취약점 점검 도구")
-    parser.add_argument(
-        "--check",
-        default="U-01",
-        help="실행할 점검 항목 코드 (현재는 U-01만 지원)",
-    )
     parser.add_argument(
         "--json",
         action="store_true",
@@ -47,26 +43,49 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def calculate_exit_code(results: list) -> int:
+    """
+    여러 결과 중 가장 심각한 상태 기준으로 종료 코드 결정
+    ERROR > FAIL > MANUAL > PASS
+    """
+    statuses = [result.status for result in results]
+
+    if "ERROR" in statuses:
+        return EXIT_CODE_MAP["ERROR"]
+    if "FAIL" in statuses:
+        return EXIT_CODE_MAP["FAIL"]
+    if "MANUAL" in statuses:
+        return EXIT_CODE_MAP["MANUAL"]
+    return EXIT_CODE_MAP["PASS"]
+
+
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    check_code = str(args.check).strip().upper()
+    runners = [
+        U01Runner(),
+        U02Runner(),
+    ]
 
-    if check_code != "U-01":
-        print(f"현재 지원하지 않는 점검 항목입니다: {check_code}", file=sys.stderr)
-        return 4
-
-    runner = U01Runner()
-    result = runner.run()
+    results = [runner.run() for runner in runners]
 
     if args.json:
-        print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                [result.to_dict() for result in results],
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     else:
         formatter = ConsoleFormatter(use_color=not args.no_color)
-        formatter.print(result, verbose=not args.quiet)
+        for idx, result in enumerate(results):
+            formatter.print(result, verbose=not args.quiet)
+            if idx < len(results) - 1:
+                print("=" * 80)
 
-    return EXIT_CODE_MAP.get(result.status, 3)
+    return calculate_exit_code(results)
 
 
 if __name__ == "__main__":

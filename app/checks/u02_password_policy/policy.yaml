@@ -1,0 +1,141 @@
+check_type: "composite"
+
+profile: "default_debian"
+
+decision_order:
+  - "complexity_rule"
+  - "history_rule"
+  - "aging_rule"
+  - "pam_rule"
+
+rules:
+  complexity_rule:
+    target_file: "/etc/security/pwquality.conf"
+    parser: "key_value"
+
+    required_keys:
+      minlen:
+        operator: ">="
+        value: 8
+      dcredit:
+        operator: "<="
+        value: -1
+      ucredit:
+        operator: "<="
+        value: -1
+      lcredit:
+        operator: "<="
+        value: -1
+      ocredit:
+        operator: "<="
+        value: -1
+
+    optional_flags:
+      - "enforce_for_root"
+
+    when_file_missing: "manual"
+    when_key_missing: "fail"
+
+    pass_condition: >
+      pwquality.conf 에 최소 길이 8 이상과
+      숫자/대문자/소문자/특수문자 조합 조건이 설정된 경우
+
+    fail_condition: >
+      pwquality.conf 에 복잡도 정책이 없거나
+      기준값을 충족하지 못하는 경우
+
+  history_rule:
+    preferred_target_file: "/etc/security/pwhistory.conf"
+    fallback_target_file: "/etc/pam.d/common-password"
+
+    checks:
+      remember:
+        operator: ">="
+        value: 4
+
+    when_file_missing: "manual"
+    when_key_missing: "fail"
+
+    pass_condition: >
+      최근 4회 이상 비밀번호 재사용 금지 정책이 설정된 경우
+
+    fail_condition: >
+      최근 비밀번호 재사용 금지 정책이 없거나 기준 미달인 경우
+
+  aging_rule:
+    target_file: "/etc/login.defs"
+    parser: "key_value"
+
+    required_keys:
+      PASS_MIN_DAYS:
+        operator: ">="
+        value: 1
+      PASS_MAX_DAYS:
+        operator: "<="
+        value: 90
+
+    when_file_missing: "manual"
+    when_key_missing: "fail"
+
+    pass_condition: >
+      최소 사용기간 1일 이상, 최대 사용기간 90일 이하로 설정된 경우
+
+    fail_condition: >
+      비밀번호 변경 주기 정책이 없거나 기준을 충족하지 못하는 경우
+
+  pam_rule:
+    target_file: "/etc/pam.d/common-password"
+    parser: "pam"
+
+    required_modules:
+      - "pam_pwquality.so"
+      - "pam_unix.so"
+
+    optional_modules:
+      - "pam_pwhistory.so"
+
+    order_constraints:
+      - before: "pam_pwquality.so"
+        after: "pam_unix.so"
+      - before: "pam_pwhistory.so"
+        after: "pam_unix.so"
+
+    when_file_missing: "manual"
+    when_module_missing: "fail"
+
+    pass_condition: >
+      common-password 내 pam_pwquality.so 가 적용되어 있고
+      필요 시 pam_pwhistory.so 가 pam_unix.so 보다 앞에 위치한 경우
+
+    fail_condition: >
+      common-password 내 pwquality 또는 pwhistory 관련 PAM 정책이 없거나
+      적용 순서가 잘못된 경우
+
+final_decision:
+  pass:
+    - "비밀번호 관리정책이 설정되어 있음"
+    - "복잡도, 변경주기, 재사용 금지 정책이 기준을 충족함"
+
+  fail:
+    - "비밀번호 관리정책이 없거나 기준을 충족하지 못함"
+
+  manual:
+    - "설정 파일 누락 또는 비표준 경로 사용"
+    - "배포판/버전별 PAM 구조 차이로 추가 확인 필요"
+
+evidence_required:
+  - "최소 길이"
+  - "영문/숫자/특수문자 요구값"
+  - "변경 주기"
+  - "재사용 금지 횟수"
+
+thresholds:
+  min_length: 8
+  min_days: 1
+  max_days: 90
+  remember_count: 4
+  require_digit: true
+  require_uppercase: true
+  require_lowercase: true
+  require_special: true
+  enforce_for_root_recommended: true
