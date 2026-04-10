@@ -15,6 +15,7 @@ if __package__ is None or __package__ == "":
 
 from app.main.u01_runner import U01Runner
 from app.main.u02_runner import U02Runner
+from app.main.u03_runner import U03Runner
 from app.output.console_formatter import ConsoleFormatter
 from app.compat import to_text
 
@@ -78,10 +79,14 @@ def build_runners(check_code):
     if normalized == "U-02":
         return [U02Runner()]
 
+    if normalized == "U-03":
+        return [U03Runner()]
+
     if normalized == "ALL":
         return [
             U01Runner(),
             U02Runner(),
+            U03Runner(),
         ]
 
     return None
