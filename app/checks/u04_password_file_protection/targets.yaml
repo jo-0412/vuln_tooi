@@ -1,0 +1,76 @@
+files:
+  required:
+    - path: "/etc/passwd"
+      type: "config"
+      parser: "passwd"
+      description: "기본 계정 정보 파일"
+
+  optional:
+    - path: "/etc/shadow"
+      type: "config"
+      parser: "shadow"
+      description: "쉐도우 비밀번호 파일"
+
+    - path: "/etc/security/passwd"
+      type: "config"
+      parser: "aix_passwd"
+      description: "AIX 계열 비밀번호 저장 위치"
+
+    - path: "/tcb/files/auth"
+      type: "directory"
+      parser: "trusted_mode"
+      description: "HP-UX Trusted Mode 비밀번호 저장 위치"
+
+commands:
+  - name: "read_passwd"
+    command: "cat /etc/passwd"
+    description: "/etc/passwd 전체 내용 확인"
+
+  - name: "grep_root_passwd"
+    command: "grep '^root:' /etc/passwd"
+    description: "root 계정의 passwd 두 번째 필드 확인"
+
+  - name: "shadow_ls"
+    command: "ls -l /etc/shadow"
+    description: "/etc/shadow 존재 여부 및 보호 상태 확인"
+
+  - name: "pwconv_help"
+    command: "pwconv"
+    description: "쉐도우 비밀번호 적용 도구 존재 여부 확인"
+
+evidence:
+  - key: "passwd_exists"
+    source: "/etc/passwd"
+    description: "/etc/passwd 존재 여부"
+
+  - key: "passwd_root_second_field"
+    source: "/etc/passwd"
+    description: "root 계정의 passwd 두 번째 필드 값"
+
+  - key: "passwd_accounts_using_x"
+    source: "/etc/passwd"
+    description: "passwd 파일에서 쉐도우 분리(x) 사용 여부"
+
+  - key: "passwd_plain_password_detected"
+    source: "/etc/passwd"
+    description: "passwd 파일에 직접 비밀번호 해시 또는 평문이 존재하는지 여부"
+
+  - key: "shadow_exists"
+    source: "/etc/shadow"
+    description: "/etc/shadow 존재 여부"
+
+  - key: "shadow_readable"
+    source: "/etc/shadow"
+    description: "/etc/shadow 읽기 가능 여부"
+
+  - key: "aix_passwd_exists"
+    source: "/etc/security/passwd"
+    description: "AIX 계열 비밀번호 저장 파일 존재 여부"
+
+  - key: "trusted_mode_path_exists"
+    source: "/tcb/files/auth"
+    description: "HP-UX Trusted Mode 경로 존재 여부"
+
+  - key: "pwconv_available"
+    source: "pwconv"
+    description: "pwconv 명령 사용 가능 여부"

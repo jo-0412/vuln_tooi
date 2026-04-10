@@ -1,0 +1,93 @@
+check_type: "composite"
+
+profile: "default_unix"
+
+decision_order:
+  - "shadow_rule"
+  - "alt_platform_rule"
+
+rules:
+  shadow_rule:
+    description: >
+      Linux/일반 Unix 계열에서는 /etc/passwd 의 두 번째 필드가 x 이고,
+      /etc/shadow 가 존재하면 쉐도우 비밀번호를 사용하는 것으로 본다.
+
+    required_files:
+      - "/etc/passwd"
+
+    optional_files:
+      - "/etc/shadow"
+
+    passwd_requirements:
+      root_second_field:
+        operator: "=="
+        value: "x"
+
+      disallow_plain_password_in_passwd: true
+
+      allow_special_tokens:
+        - "x"
+        - "*"
+        - "!"
+        - "!!"
+        - "NP"
+        - "LK"
+
+    shadow_requirements:
+      shadow_exists_required: true
+
+    when_required_file_missing: "error"
+    when_optional_file_missing: "fail"
+
+    pass_condition: >
+      /etc/passwd 의 root 두 번째 필드가 x 이고
+      passwd 파일에 직접 비밀번호 값이 없으며
+      /etc/shadow 가 존재하는 경우
+
+    fail_condition: >
+      /etc/passwd 에 직접 비밀번호 정보가 저장되어 있거나
+      /etc/shadow 가 존재하지 않는 경우
+
+  alt_platform_rule:
+    description: >
+      AIX 또는 HP-UX 계열에서는 별도 비밀번호 저장 위치가 존재할 수 있으므로
+      /etc/security/passwd 또는 /tcb/files/auth 존재 여부를 참고한다.
+
+    optional_files:
+      - "/etc/security/passwd"
+      - "/tcb/files/auth"
+
+    allow_alt_password_store: true
+
+    pass_condition: >
+      /etc/security/passwd 또는 /tcb/files/auth 등
+      플랫폼별 보호 저장소가 존재하는 경우
+
+    manual_condition: >
+      Linux 표준 경로가 아니고 플랫폼별 저장 방식이 의심되는 경우 수동 확인
+
+final_decision:
+  pass:
+    - "쉐도우 비밀번호를 사용하고 있음"
+    - "/etc/passwd 에 직접 비밀번호가 저장되지 않음"
+    - "또는 플랫폼별 보호 저장소를 사용함"
+
+  fail:
+    - "/etc/passwd 에 직접 비밀번호가 저장됨"
+    - "/etc/shadow 가 없고 쉐도우 분리를 사용하지 않음"
+    - "비밀번호가 안전하게 보호되지 않음"
+
+  manual:
+    - "플랫폼별 비밀번호 저장 구조로 보이며 추가 확인 필요"
+
+  error:
+    - "필수 파일(/etc/passwd) 자체를 읽지 못함"
+
+evidence_required:
+  - "passwd root 두 번째 필드"
+  - "/etc/shadow 존재 여부"
+  - "AIX/HP-UX 대체 저장 위치 확인 결과"
+
+thresholds:
+  root_field_must_be_x: true
+  shadow_exists_required: true

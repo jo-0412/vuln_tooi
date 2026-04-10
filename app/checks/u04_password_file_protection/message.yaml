@@ -1,0 +1,52 @@
+title: "U-04 비밀번호 파일 보호"
+
+pass:
+  summary: "비밀번호 파일이 적절히 보호되고 있습니다."
+  detail: >
+    비밀번호가 쉐도우 분리 또는 안전한 저장 방식으로 보호되고 있어
+    계정 정보 파일 유출 시 직접적인 비밀번호 노출 위험이 낮습니다.
+
+fail:
+  summary: "비밀번호 파일 보호 설정이 미흡합니다."
+  detail: >
+    계정 비밀번호가 쉐도우 분리 또는 안전한 암호화로 보호되지 않아
+    파일 유출 시 비밀번호 노출 위험이 큽니다.
+
+manual:
+  summary: "자동 판정이 어렵습니다."
+  detail: >
+    시스템이 Linux 표준 저장 구조가 아니거나 플랫폼별 비밀번호 저장 방식을 사용하고 있어
+    추가 확인이 필요합니다.
+
+error:
+  summary: "점검 실행 중 오류가 발생했습니다."
+  detail: >
+    필수 파일을 읽지 못했거나 점검에 필요한 정보 수집 중 오류가 발생했습니다.
+
+remediation:
+  summary: "쉐도우 비밀번호 사용 여부를 확인하고, 비밀번호가 passwd 파일에 직접 저장되지 않도록 조치해야 합니다."
+  actions:
+    - "/etc/passwd 의 두 번째 필드가 x 로 설정되어 있는지 확인합니다."
+    - "/etc/shadow 파일이 존재하는지 확인합니다."
+    - "쉐도우 비밀번호를 사용하지 않는 경우 pwconv 등을 이용해 쉐도우 비밀번호를 적용합니다."
+    - "/etc/passwd 에 직접 비밀번호 해시 또는 평문이 저장되어 있다면 즉시 제거하고 쉐도우 구조로 전환합니다."
+    - "HP-UX 계열은 필요 시 Trusted Mode 전환을 검토합니다."
+    - "AIX 계열은 /etc/security/passwd 저장 구조를 확인합니다."
+    - "적용 전 관련 계정 파일을 반드시 백업하고 root 권한으로 수행합니다."
+
+evidence_labels:
+  passwd_exists: "/etc/passwd 존재 여부"
+  passwd_root_second_field: "root 계정의 passwd 두 번째 필드"
+  passwd_accounts_using_x: "passwd 파일 내 쉐도우 분리 사용 여부"
+  passwd_plain_password_detected: "passwd 파일 내 직접 비밀번호 저장 여부"
+  shadow_exists: "/etc/shadow 존재 여부"
+  shadow_readable: "/etc/shadow 읽기 가능 여부"
+  aix_passwd_exists: "AIX 비밀번호 저장 파일 존재 여부"
+  trusted_mode_path_exists: "HP-UX Trusted Mode 경로 존재 여부"
+  pwconv_available: "pwconv 명령 사용 가능 여부"
+
+notes:
+  - "Linux 계열은 /etc/passwd 와 /etc/shadow 조합을 우선 확인합니다."
+  - "AIX 계열은 /etc/security/passwd 를 확인합니다."
+  - "HP-UX 계열은 /tcb/files/auth 와 Trusted Mode 사용 여부를 확인합니다."
+  - "passwd 파일의 두 번째 필드가 x 가 아니면 쉐도우 비밀번호 미사용 가능성이 큽니다."
