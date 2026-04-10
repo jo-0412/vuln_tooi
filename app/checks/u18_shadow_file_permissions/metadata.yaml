@@ -1,0 +1,25 @@
+code: "U-18"
+name: "/etc/shadow 파일 소유자 및 권한 설정"
+severity: "high"
+category: "account_management"
+requires_root: "required"
+
+summary: >
+  암호 해시 저장 파일의 소유자와 권한이 적절한지 점검하여
+  비인가자의 접근 및 변조를 방지하는 항목이다.
+
+description: >
+  Linux/Solaris 계열의 /etc/shadow 파일과
+  AIX, HP-UX 계열의 대체 저장 경로를 확인하여
+  암호 해시 저장 파일이 관리자만 제어할 수 있도록 보호되고 있는지 점검한다.
+
+purpose: >
+  비밀번호 해시 저장 파일을 관리자만 제어하도록 하여
+  비인가자가 파일에 접근하거나 변조하는 것을 방지한다.
+
+platform: "unix_like"
+
+references:
+  - "/etc/shadow"
+  - "/etc/security/passwd"
+  - "/tcb/files/auth"

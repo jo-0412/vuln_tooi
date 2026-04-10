@@ -1,0 +1,49 @@
+title: "U-18 /etc/shadow 파일 소유자 및 권한 설정"
+
+pass:
+  summary: "/etc/shadow 파일의 소유자 및 권한이 적절합니다."
+  detail: >
+    비밀번호 해시 파일이 관리자만 제어할 수 있도록 보호되고 있어
+    비인가자의 접근 및 변조 위험이 낮습니다.
+
+fail:
+  summary: "/etc/shadow 파일의 소유자 또는 권한 설정이 미흡합니다."
+  detail: >
+    비밀번호 해시 파일 권한이 과도하거나 소유자가 부적절하여
+    비인가자가 해시를 수집해 크래킹 공격을 시도할 수 있습니다.
+
+manual:
+  summary: "자동 판정이 어렵습니다."
+  detail: >
+    Linux 표준 경로가 아니거나 플랫폼별 대체 저장 구조가 확인되어
+    추가 확인이 필요합니다.
+
+error:
+  summary: "점검 실행 중 오류가 발생했습니다."
+  detail: >
+    필수 파일 확인 또는 메타데이터 수집 중 오류가 발생했습니다.
+
+remediation:
+  summary: "/etc/shadow 파일은 root 소유, 0400 이하 권한으로 제한해야 합니다."
+  actions:
+    - "/etc/shadow 파일 소유자를 root 로 설정합니다."
+    - "/etc/shadow 파일 권한을 0400 으로 제한합니다."
+    - "필요 시 chown root /etc/shadow 명령으로 소유자를 수정합니다."
+    - "필요 시 chmod 400 /etc/shadow 명령으로 권한을 수정합니다."
+    - "AIX 계열은 /etc/security/passwd 를 확인합니다."
+    - "HP-UX 계열은 /tcb/files/auth 경로의 보호 상태를 확인합니다."
+    - "변경 전 관련 파일을 반드시 백업합니다."
+
+evidence_labels:
+  shadow_exists: "/etc/shadow 존재 여부"
+  shadow_owner_uid: "/etc/shadow 소유자 UID"
+  shadow_group_gid: "/etc/shadow 그룹 GID"
+  shadow_mode: "/etc/shadow 권한 값"
+  aix_passwd_exists: "AIX 비밀번호 저장 파일 존재 여부"
+  trusted_mode_path_exists: "HP-UX Trusted Mode 경로 존재 여부"
+
+notes:
+  - "Linux/Solaris 계열은 /etc/shadow 파일을 우선 확인합니다."
+  - "AIX 계열은 /etc/security/passwd 를 확인합니다."
+  - "HP-UX 계열은 /tcb/files/auth 와 Trusted Mode 사용 여부를 확인합니다."
+  - "권한 기준은 0400 이하를 기본 기준으로 사용합니다."

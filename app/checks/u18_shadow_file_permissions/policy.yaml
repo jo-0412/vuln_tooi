@@ -1,0 +1,71 @@
+check_type: "composite"
+
+profile: "default_unix"
+
+rules:
+  shadow_permission_rule:
+    description: >
+      Linux/Solaris 계열에서는 /etc/shadow 파일의 소유자가 root 이고
+      권한이 400 이하인지 확인한다.
+
+    required_files:
+      - "/etc/shadow"
+
+    shadow_requirements:
+      owner_uid:
+        operator: "=="
+        value: 0
+
+      max_mode_octal:
+        value: "0400"
+
+    when_required_file_missing: "manual"
+
+    pass_condition: >
+      /etc/shadow 파일이 존재하고
+      소유자 UID가 0(root)이며
+      권한이 0400 이하인 경우
+
+    fail_condition: >
+      /etc/shadow 소유자가 root가 아니거나
+      권한이 0400 이하가 아닌 경우
+
+  alt_platform_rule:
+    description: >
+      AIX 또는 HP-UX 계열에서는 대체 저장 경로 존재 여부를 참고하여
+      추가 수동 확인 대상으로 분류할 수 있다.
+
+    optional_files:
+      - "/etc/security/passwd"
+      - "/tcb/files/auth"
+
+    allow_alt_password_store: true
+
+    manual_condition: >
+      Linux 표준 경로가 아니고
+      AIX 또는 HP-UX 계열 저장 구조가 확인되는 경우
+
+final_decision:
+  pass:
+    - "/etc/shadow 소유자가 root이고 권한이 0400 이하임"
+
+  fail:
+    - "/etc/shadow 소유자가 root가 아님"
+    - "/etc/shadow 권한이 0400 이하가 아님"
+
+  manual:
+    - "AIX 또는 HP-UX 대체 저장 구조로 보여 추가 확인 필요"
+    - "/etc/shadow 가 없지만 대체 저장 경로가 존재함"
+
+  error:
+    - "필수 파일의 메타데이터 확인에 실패함"
+
+evidence_required:
+  - "/etc/shadow 존재 여부"
+  - "/etc/shadow 소유자 UID"
+  - "/etc/shadow 권한 값"
+  - "AIX/HP-UX 대체 저장 경로 결과"
+
+thresholds:
+  required_owner_uid: 0
+  max_shadow_mode: "0400"

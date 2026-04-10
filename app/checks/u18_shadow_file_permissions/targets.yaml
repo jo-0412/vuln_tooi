@@ -1,0 +1,55 @@
+files:
+  required:
+    - path: "/etc/shadow"
+      type: "config"
+      parser: "file_metadata"
+      description: "Linux/Solaris 비밀번호 해시 저장 파일"
+
+  optional:
+    - path: "/etc/security/passwd"
+      type: "config"
+      parser: "file_metadata"
+      description: "AIX 비밀번호 저장 파일"
+
+    - path: "/tcb/files/auth"
+      type: "directory"
+      parser: "file_metadata"
+      description: "HP-UX Trusted Mode 비밀번호 저장 경로"
+
+commands:
+  - name: "shadow_ls"
+    command: "ls -l /etc/shadow"
+    description: "/etc/shadow 파일 소유자 및 권한 확인"
+
+  - name: "aix_passwd_ls"
+    command: "ls -l /etc/security/passwd"
+    description: "AIX 비밀번호 저장 파일 소유자 및 권한 확인"
+
+  - name: "trusted_mode_ls"
+    command: "ls -ld /tcb/files/auth"
+    description: "HP-UX Trusted Mode 경로 확인"
+
+evidence:
+  - key: "shadow_exists"
+    source: "/etc/shadow"
+    description: "/etc/shadow 존재 여부"
+
+  - key: "shadow_owner_uid"
+    source: "/etc/shadow"
+    description: "/etc/shadow 소유자 UID"
+
+  - key: "shadow_group_gid"
+    source: "/etc/shadow"
+    description: "/etc/shadow 그룹 GID"
+
+  - key: "shadow_mode"
+    source: "/etc/shadow"
+    description: "/etc/shadow 권한 값"
+
+  - key: "aix_passwd_exists"
+    source: "/etc/security/passwd"
+    description: "AIX 대체 저장 파일 존재 여부"
+
+  - key: "trusted_mode_path_exists"
+    source: "/tcb/files/auth"
+    description: "HP-UX Trusted Mode 경로 존재 여부"
