@@ -50,8 +50,9 @@ class U04Runner(object):
         try:
             self._load_configs()
         except Exception as exc:
+            error_message = to_text(exc)
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(exc)
+                "설정 파일 로딩 실패: {0}".format(error_message)
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
