@@ -1,0 +1,36 @@
+files:
+  required:
+    - path: "/etc/passwd"
+      type: "config"
+      parser: "passwd"
+      description: "UID가 0인 계정 존재 여부 확인"
+
+commands:
+  - name: "uid_zero_accounts"
+    command: "awk -F: '$3==0 {print}' /etc/passwd"
+    description: "UID가 0인 계정 목록 확인"
+
+  - name: "read_passwd"
+    command: "cat /etc/passwd"
+    description: "/etc/passwd 전체 내용 확인"
+
+evidence:
+  - key: "passwd_exists"
+    source: "/etc/passwd"
+    description: "/etc/passwd 존재 여부"
+
+  - key: "uid_zero_accounts"
+    source: "/etc/passwd"
+    description: "UID가 0인 계정 목록"
+
+  - key: "uid_zero_non_root_accounts"
+    source: "/etc/passwd"
+    description: "root 외 UID 0 계정 목록"
+
+  - key: "root_passwd_line"
+    source: "/etc/passwd"
+    description: "root 계정 관련 행"
+
+  - key: "uid_zero_count"
+    source: "/etc/passwd"
+    description: "UID가 0인 계정 수"

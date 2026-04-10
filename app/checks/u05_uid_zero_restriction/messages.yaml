@@ -1,0 +1,45 @@
+title: "U-05 root 이외의 UID가 0 금지"
+
+pass:
+  summary: "root 외 UID가 0인 계정이 존재하지 않습니다."
+  detail: >
+    UID가 0인 계정이 root 하나뿐이어서
+    숨은 관리자 계정에 의한 권한 위장 가능성이 낮습니다.
+
+fail:
+  summary: "root 외 UID가 0인 계정이 존재합니다."
+  detail: >
+    root 외에 UID 0 계정이 존재하여 숨은 관리자 계정으로 악용될 수 있고,
+    감사 추적도 어려워집니다.
+
+manual:
+  summary: "자동 판정이 어렵습니다."
+  detail: >
+    passwd 구조가 비정상적이거나 root 계정 식별이 어려워
+    추가 확인이 필요합니다.
+
+error:
+  summary: "점검 실행 중 오류가 발생했습니다."
+  detail: >
+    필수 파일을 읽지 못했거나 점검에 필요한 정보 수집 중 오류가 발생했습니다.
+
+remediation:
+  summary: "root 외 UID 0 계정을 제거하거나 일반 UID로 변경해야 합니다."
+  actions:
+    - "UID가 0인 계정 목록을 확인합니다."
+    - "불필요한 계정은 삭제합니다."
+    - "업무상 필요한 계정이라면 usermod -u 명령으로 0이 아닌 중복되지 않은 UID로 변경합니다."
+    - "변경 전 해당 계정의 서비스 영향도와 파일 소유권 영향을 검토합니다."
+    - "조치 전 /etc/passwd 및 관련 계정 정보를 반드시 백업합니다."
+
+evidence_labels:
+  passwd_exists: "/etc/passwd 존재 여부"
+  uid_zero_accounts: "UID가 0인 계정 목록"
+  uid_zero_non_root_accounts: "root 외 UID 0 계정 목록"
+  root_passwd_line: "root 계정 관련 행"
+  uid_zero_count: "UID가 0인 계정 수"
+
+notes:
+  - "UID 0은 이름과 무관하게 root와 동일한 최상위 권한을 의미합니다."
+  - "계정명이 root가 아니더라도 UID가 0이면 관리자 권한을 가집니다."
+  - "감사 추적 측면에서 UID 0 중복 계정은 식별과 책임 추적을 어렵게 만듭니다."

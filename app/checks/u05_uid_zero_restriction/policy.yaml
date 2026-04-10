@@ -1,0 +1,49 @@
+check_type: "composite"
+
+profile: "default_unix"
+
+rules:
+  uid_zero_rule:
+    description: >
+      /etc/passwd 파일에서 UID가 0인 계정을 추출하여
+      root 외 UID 0 계정 존재 여부를 판정한다.
+
+    required_files:
+      - "/etc/passwd"
+
+    passwd_requirements:
+      root_account_required: true
+      allow_only_root_uid_zero: true
+
+    when_required_file_missing: "error"
+
+    pass_condition: >
+      UID가 0인 계정이 root 하나뿐인 경우
+
+    fail_condition: >
+      root 외 UID가 0인 계정이 존재하는 경우
+
+    manual_condition: >
+      root 계정을 찾지 못했거나 passwd 구조가 비정상인 경우
+
+final_decision:
+  pass:
+    - "UID가 0인 계정이 root 하나뿐임"
+
+  fail:
+    - "root 외 UID가 0인 계정이 존재함"
+
+  manual:
+    - "passwd 구조가 비정상적이거나 root 계정이 확인되지 않음"
+
+  error:
+    - "필수 파일(/etc/passwd)을 읽지 못함"
+
+evidence_required:
+  - "UID가 0인 계정 목록"
+  - "root 외 UID 0 계정 목록"
+  - "/etc/passwd 관련 행 전체"
+
+thresholds:
+  uid_zero_accounts_allowed:
+    - "root"

@@ -1,0 +1,22 @@
+code: "U-05"
+name: "root 이외의 UID가 0 금지"
+severity: "high"
+category: "account_management"
+requires_root: "partial"
+
+summary: >
+  root 와 동일한 UID(0)를 가진 계정이 존재하는지 확인하여
+  숨은 관리자 계정 여부를 점검하는 항목이다.
+
+description: >
+  /etc/passwd 파일에서 UID가 0인 계정 목록을 수집하고,
+  root 외 계정이 동일한 UID를 사용하는지 점검한다.
+
+purpose: >
+  root 와 동일한 UID(0)를 가진 숨은 관리자 계정을 식별하여
+  권한 남용, 계정 위장, 감사 추적 어려움 등의 위험을 줄인다.
+
+platform: "unix_like"
+
+references:
+  - "/etc/passwd"
