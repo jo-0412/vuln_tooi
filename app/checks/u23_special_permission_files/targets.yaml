@@ -1,0 +1,54 @@
+scan:
+  roots:
+    - "/"
+
+  exclude_paths:
+    - "/proc"
+    - "/sys"
+    - "/dev"
+    - "/run"
+    - "/snap"
+    - "/var/lib/docker"
+    - "/var/lib/containerd"
+
+commands:
+  - name: "find_suid_sgid_root_owned_files"
+    command: "find / -user root -type f \\( -perm -04000 -o -perm -02000 \\) -xdev -exec ls -al {} \\;"
+    description: "root 소유 SUID/SGID 실행 파일 목록 확인"
+
+  - name: "find_sticky_directories"
+    command: "find / -type d -perm -01000 -xdev -exec ls -ald {} \\;"
+    description: "Sticky bit 설정 디렉터리 목록 확인"
+
+evidence:
+  - key: "suid_files"
+    source: "filesystem"
+    description: "SUID 설정 파일 목록"
+
+  - key: "sgid_files"
+    source: "filesystem"
+    description: "SGID 설정 파일 목록"
+
+  - key: "sticky_dirs"
+    source: "filesystem"
+    description: "Sticky bit 설정 디렉터리 목록"
+
+  - key: "unexpected_suid_files"
+    source: "filesystem"
+    description: "허용 목록 외 SUID 파일"
+
+  - key: "unexpected_sgid_files"
+    source: "filesystem"
+    description: "허용 목록 외 SGID 파일"
+
+  - key: "unexpected_sticky_dirs"
+    source: "filesystem"
+    description: "허용 목록 외 Sticky bit 디렉터리"
+
+  - key: "special_permission_count"
+    source: "filesystem"
+    description: "특수권한 항목 수"
+
+  - key: "review_required_items"
+    source: "filesystem"
+    description: "업무 필요성 검토가 필요한 항목 목록"

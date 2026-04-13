@@ -1,0 +1,22 @@
+code: "U-23"
+name: "SUID, SGID, Sticky bit 설정 파일 점검"
+severity: "high"
+category: "file_and_directory_management"
+requires_root: "required"
+
+summary: >
+  전체 파일시스템 내 SUID, SGID, Sticky bit 설정 파일을 점검하여
+  불필요한 특수권한 파일에 의한 권한 상승 위험을 식별하는 항목이다.
+
+description: >
+  전체 파일시스템을 검색해 SUID, SGID, Sticky bit가 설정된 파일 및 디렉터리를 수집하고,
+  허용된 항목 외 특수권한 부여 여부를 점검한다.
+
+purpose: >
+  불필요한 특수권한 파일을 제거하여 일반 사용자의 권한 상승,
+  오남용, 우회 실행 가능성을 줄인다.
+
+platform: "unix_like"
+
+references:
+  - "전체 파일시스템 내 특수권한 파일"
