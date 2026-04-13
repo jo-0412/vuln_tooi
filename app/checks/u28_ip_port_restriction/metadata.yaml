@@ -1,0 +1,26 @@
+code: "U-28"
+name: "접속 IP 및 포트 제한"
+severity: "high"
+category: "network_security"
+requires_root: "required"
+
+summary: >
+  서비스 접근을 허용된 호스트와 포트로 제한하고 있는지 점검하여
+  외부 공격면을 줄이는 항목이다.
+
+description: >
+  TCP Wrapper, OS 방화벽, 서비스 설정을 통해
+  허용된 IP와 포트만 열어두고 있는지 확인한다.
+
+purpose: >
+  허용된 호스트만 서비스에 접근하게 하여
+  SSH, FTP, Telnet 등 네트워크 서비스의 외부 노출 범위를 최소화한다.
+
+platform: "unix_like"
+
+references:
+  - "/etc/hosts.allow"
+  - "/etc/hosts.deny"
+  - "/etc/firewall/pf.conf"
+  - "/etc/ipf/ipf.conf"
+  - "/var/adm/inetd.sec"

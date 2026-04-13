@@ -1,0 +1,97 @@
+files:
+  optional:
+    - path: "/etc/hosts.allow"
+      type: "config"
+      parser: "plain_text"
+      description: "TCP Wrapper 허용 정책 파일"
+
+    - path: "/etc/hosts.deny"
+      type: "config"
+      parser: "plain_text"
+      description: "TCP Wrapper 차단 정책 파일"
+
+    - path: "/etc/firewall/pf.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "PF 방화벽 정책 파일"
+
+    - path: "/etc/ipf/ipf.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "IPFilter 정책 파일"
+
+    - path: "/var/adm/inetd.sec"
+      type: "config"
+      parser: "plain_text"
+      description: "inetd 기반 접근 제한 파일"
+
+    - path: "/etc/ssh/sshd_config"
+      type: "config"
+      parser: "sshd_config"
+      description: "SSH 서비스 설정 파일"
+
+commands:
+  - name: "iptables_list"
+    command: "iptables -L"
+    description: "iptables 규칙 목록 확인"
+
+  - name: "firewalld_list"
+    command: "firewall-cmd --list-all"
+    description: "firewalld 전체 정책 확인"
+
+  - name: "ufw_status"
+    command: "ufw status numbered"
+    description: "UFW 정책 확인"
+
+  - name: "read_hosts_allow"
+    command: "cat /etc/hosts.allow"
+    description: "hosts.allow 파일 내용 확인"
+
+  - name: "read_hosts_deny"
+    command: "cat /etc/hosts.deny"
+    description: "hosts.deny 파일 내용 확인"
+
+  - name: "listening_ports"
+    command: "ss -lntup"
+    description: "현재 리스닝 포트 목록 확인"
+
+evidence:
+  - key: "hosts_allow_exists"
+    source: "/etc/hosts.allow"
+    description: "hosts.allow 존재 여부"
+
+  - key: "hosts_deny_exists"
+    source: "/etc/hosts.deny"
+    description: "hosts.deny 존재 여부"
+
+  - key: "hosts_allow_rules"
+    source: "/etc/hosts.allow"
+    description: "허용 호스트 규칙 목록"
+
+  - key: "hosts_deny_rules"
+    source: "/etc/hosts.deny"
+    description: "차단 호스트 규칙 목록"
+
+  - key: "iptables_policy_present"
+    source: "iptables -L"
+    description: "iptables 정책 존재 여부"
+
+  - key: "firewalld_policy_present"
+    source: "firewall-cmd --list-all"
+    description: "firewalld 정책 존재 여부"
+
+  - key: "ufw_policy_present"
+    source: "ufw status numbered"
+    description: "UFW 정책 존재 여부"
+
+  - key: "ssh_port"
+    source: "/etc/ssh/sshd_config"
+    description: "SSH 서비스 포트 설정"
+
+  - key: "ssh_listen_address"
+    source: "/etc/ssh/sshd_config"
+    description: "SSH ListenAddress 설정"
+
+  - key: "listening_ports"
+    source: "ss -lntup"
+    description: "현재 열려 있는 포트 목록"

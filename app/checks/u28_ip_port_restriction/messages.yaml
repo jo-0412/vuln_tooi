@@ -1,0 +1,50 @@
+title: "U-28 접속 IP 및 포트 제한"
+
+pass:
+  summary: "접속 IP 또는 포트 제한 정책이 확인됩니다."
+  detail: >
+    허용된 호스트 또는 포트만 접근하도록 제한하는 정책 흔적이 확인되어
+    서비스 외부 노출 범위가 통제되고 있습니다.
+
+fail:
+  summary: "접속 IP 및 포트 제한 정책이 확인되지 않습니다."
+  detail: >
+    서비스가 허용 IP 없이 전체에 노출되어 있어,
+    SSH·FTP·Telnet 등 취약 서비스로 비인가 접근이 발생할 수 있습니다.
+
+manual:
+  summary: "접속 제한 정책을 추가 확인해야 합니다."
+  detail: >
+    관련 설정 또는 방화벽 흔적은 존재하지만,
+    실제 허용 IP 및 포트 제한이 충분한지 추가 검토가 필요합니다.
+
+error:
+  summary: "점검 실행 중 오류가 발생했습니다."
+  detail: >
+    접근 통제 파일 또는 방화벽 정책 수집 중 오류가 발생했습니다.
+
+remediation:
+  summary: "허용된 IP와 포트만 열고 나머지는 차단하도록 접근 통제를 구성해야 합니다."
+  actions:
+    - "TCP Wrapper(hosts.allow, hosts.deny) 사용 시 허용 서비스와 허용 호스트만 명시합니다."
+    - "iptables, firewalld, UFW 중 운영 환경에 맞는 방화벽으로 허용 포트와 허용 IP만 열어둡니다."
+    - "SSH 서비스는 가능하면 특정 관리망 또는 관리 IP에서만 접근하도록 제한합니다."
+    - "불필요하게 외부에 열려 있는 포트는 차단합니다."
+    - "변경 전 현재 방화벽 정책과 네트워크 서비스 영향을 반드시 검토합니다."
+
+evidence_labels:
+  hosts_allow_exists: "hosts.allow 존재 여부"
+  hosts_deny_exists: "hosts.deny 존재 여부"
+  hosts_allow_rules: "허용 호스트 규칙 목록"
+  hosts_deny_rules: "차단 호스트 규칙 목록"
+  iptables_policy_present: "iptables 정책 존재 여부"
+  firewalld_policy_present: "firewalld 정책 존재 여부"
+  ufw_policy_present: "UFW 정책 존재 여부"
+  ssh_port: "SSH 서비스 포트 설정"
+  ssh_listen_address: "SSH ListenAddress 설정"
+  listening_ports: "현재 열려 있는 포트 목록"
+
+notes:
+  - "1차 구현은 정책의 존재 여부와 제한 흔적 확인에 중점을 둡니다."
+  - "실제 허용 IP 대역의 적정성 판단은 2차 구현에서 정교화할 수 있습니다."
+  - "배포판마다 iptables, nftables, firewalld, UFW 사용 방식이 다를 수 있습니다."

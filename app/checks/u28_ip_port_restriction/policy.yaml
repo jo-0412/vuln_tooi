@@ -1,0 +1,106 @@
+check_type: "composite"
+
+profile: "default_linux_phase1"
+
+rules:
+  tcp_wrapper_rule:
+    description: >
+      hosts.allow, hosts.deny 파일을 통해
+      허용/차단 대상 IP 또는 호스트 제한 정책이 존재하는지 확인한다.
+
+    optional_files:
+      - "/etc/hosts.allow"
+      - "/etc/hosts.deny"
+
+    accepted_patterns:
+      deny_all:
+        - "ALL: ALL"
+        - "ALL:ALL"
+
+      allow_restricted_examples:
+        - "sshd:"
+        - "in.ftpd:"
+        - "vsftpd:"
+        - "telnetd:"
+
+    pass_condition: >
+      hosts.allow 또는 hosts.deny 내에
+      특정 서비스 대상 허용/차단 규칙이 존재하는 경우
+
+    manual_condition: >
+      파일은 존재하지만 실질적인 제한 여부 판단이 어려운 경우
+
+  firewall_rule:
+    description: >
+      iptables, firewalld, ufw 중 하나 이상에서
+      허용 포트 또는 허용 IP 기반 정책 흔적이 존재하는지 확인한다.
+
+    accepted_commands:
+      - "iptables_list"
+      - "firewalld_list"
+      - "ufw_status"
+
+    policy_presence_patterns:
+      iptables:
+        - "Chain INPUT"
+        - "DROP"
+        - "REJECT"
+        - "ACCEPT"
+
+      firewalld:
+        - "services:"
+        - "ports:"
+        - "sources:"
+        - "rich rules:"
+
+      ufw:
+        - "Status: active"
+        - "ALLOW"
+        - "DENY"
+        - "LIMIT"
+
+    pass_condition: >
+      iptables, firewalld, ufw 중 하나 이상에서
+      접근 통제 정책 흔적이 확인되는 경우
+
+  ssh_restriction_rule:
+    description: >
+      SSH 서비스 기준으로 포트 또는 ListenAddress 제한이 설정되어 있는지 확인한다.
+
+    optional_files:
+      - "/etc/ssh/sshd_config"
+
+    ssh_requirements:
+      port_present_allowed: true
+      listen_address_restriction_recommended: true
+
+    pass_condition: >
+      sshd_config 에서 Port 또는 ListenAddress 등
+      노출 범위를 제한하는 설정 흔적이 존재하는 경우
+
+final_decision:
+  pass:
+    - "허용 IP 또는 허용 포트 제한 정책 흔적이 확인됨"
+
+  fail:
+    - "허용 IP/포트 제한 정책 흔적을 확인하지 못함"
+
+  manual:
+    - "정책 파일 또는 방화벽 규칙은 있으나 실질 제한 여부 판단이 어려움"
+
+  error:
+    - "파일 또는 명령 결과 수집에 실패함"
+
+decision_logic:
+  phase1_rule: >
+    1차 구현에서는 TCP Wrapper, 방화벽, SSH 제한 흔적 중
+    하나 이상이 확인되면 PASS 후보로 본다.
+    아무 흔적도 없으면 FAIL 로 본다.
+
+evidence_required:
+  - "allow/deny 파일 내용"
+  - "방화벽 규칙 목록"
+  - "허용 IP와 허용 포트 목록"
+
+thresholds:
+  require_any_control_evidence: true

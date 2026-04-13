@@ -20,6 +20,7 @@ from app.main.u04_runner import U04Runner
 from app.main.u05_runner import U05Runner
 from app.main.u18_runner import U18Runner
 from app.main.u23_runner import U23Runner
+from app.main.u28_runner import U28Runner
 from app.output.console_formatter import ConsoleFormatter
 from app.compat import to_text
 
@@ -98,6 +99,9 @@ def build_runners(check_code):
     if normalized == "U-23":
         return [U23Runner()]
 
+    if normalized == "U-28":
+        return [U28Runner()]
+
     if normalized == "ALL":
         return [
             U01Runner(),
@@ -107,6 +111,7 @@ def build_runners(check_code):
             U05Runner(),
             U18Runner(),
             U23Runner(),
+            U28Runner(),
         ]
 
     return None
