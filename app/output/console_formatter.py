@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*--
 from __future__ import absolute_import, print_function, unicode_literals
 
 import json
@@ -128,13 +128,12 @@ class ConsoleFormatter(object):
             return lines
         return [""]
 
-    @staticmethod
     def _value_to_text(self, value):
         summarized = self._summarize_value(value, depth=0)
         if isinstance(summarized, (dict, list, tuple, set)):
             return to_text(json.dumps(summarized, ensure_ascii=False, indent=2))
         return to_text(summarized)
-    
+
     def _summarize_value(self, value, depth=0):
         if depth >= 2:
             return self._summarize_leaf(value)
@@ -170,7 +169,6 @@ class ConsoleFormatter(object):
             return limited
 
         return self._summarize_leaf(value)
-
 
     def _summarize_leaf(self, value):
         text = to_text(value)
