@@ -8,11 +8,14 @@ from app.compat import PY2, to_text
 
 
 class ConsoleFormatter(object):
-    def __init__(self, use_color=None):
+    def __init__(self, use_color=None, max_collection_items=5, max_value_lines=12):
         if use_color is None:
             self.use_color = sys.stdout.isatty()
         else:
             self.use_color = use_color
+
+        self.max_collection_items = max_collection_items
+        self.max_value_lines = max_value_lines
 
     def format(self, result, verbose=True):
         lines = []
@@ -83,6 +86,12 @@ class ConsoleFormatter(object):
 
         value_text = self._value_to_text(evidence.value)
         value_lines = value_text.splitlines() or [value_text]
+
+        if len(value_lines) > self.max_value_lines:
+            hidden_count = len(value_lines) - self.max_value_lines
+            value_lines = value_lines[:self.max_value_lines]
+            value_lines.append("... 외 {0}줄 생략".format(hidden_count))
+
         lines.append("  value : {0}".format(value_lines[0]))
 
         for extra_line in value_lines[1:]:
@@ -95,15 +104,19 @@ class ConsoleFormatter(object):
             excerpt_lines = to_text(evidence.excerpt).splitlines()
             if excerpt_lines:
                 lines.append("  excerpt: {0}".format(excerpt_lines[0]))
-                for extra_line in excerpt_lines[1:]:
+                for extra_line in excerpt_lines[1:3]:
                     lines.append("           {0}".format(extra_line))
+                if len(excerpt_lines) > 3:
+                    lines.append("           ... 외 {0}줄 생략".format(len(excerpt_lines) - 3))
 
         if evidence.notes:
             notes_lines = to_text(evidence.notes).splitlines()
             if notes_lines:
                 lines.append("  notes  : {0}".format(notes_lines[0]))
-                for extra_line in notes_lines[1:]:
+                for extra_line in notes_lines[1:3]:
                     lines.append("           {0}".format(extra_line))
+                if len(notes_lines) > 3:
+                    lines.append("           ... 외 {0}줄 생략".format(len(notes_lines) - 3))
 
         return lines
 
@@ -116,10 +129,54 @@ class ConsoleFormatter(object):
         return [""]
 
     @staticmethod
-    def _value_to_text(value):
-        if isinstance(value, (dict, list, tuple, set)):
-            return to_text(json.dumps(value, ensure_ascii=False))
-        return to_text(value)
+    def _value_to_text(self, value):
+        summarized = self._summarize_value(value, depth=0)
+        if isinstance(summarized, (dict, list, tuple, set)):
+            return to_text(json.dumps(summarized, ensure_ascii=False, indent=2))
+        return to_text(summarized)
+    
+    def _summarize_value(self, value, depth=0):
+        if depth >= 2:
+            return self._summarize_leaf(value)
+
+        if isinstance(value, dict):
+            items = list(value.items())
+            limited = {}
+            shown = 0
+
+            for key, item_value in items:
+                if shown >= self.max_collection_items:
+                    break
+                limited[to_text(key)] = self._summarize_value(item_value, depth + 1)
+                shown += 1
+
+            hidden = len(items) - shown
+            if hidden > 0:
+                limited["__truncated__"] = "... 외 {0}개 항목 생략".format(hidden)
+
+            return limited
+
+        if isinstance(value, (list, tuple, set)):
+            seq = list(value)
+            limited = []
+
+            for item in seq[:self.max_collection_items]:
+                limited.append(self._summarize_value(item, depth + 1))
+
+            hidden = len(seq) - len(limited)
+            if hidden > 0:
+                limited.append("... 외 {0}개 항목 생략".format(hidden))
+
+            return limited
+
+        return self._summarize_leaf(value)
+
+
+    def _summarize_leaf(self, value):
+        text = to_text(value)
+        if len(text) > 200:
+            return text[:200] + "...(생략)"
+        return text
 
     def _colorize_status(self, status):
         if not self.use_color:
