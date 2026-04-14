@@ -1,0 +1,24 @@
+code: "U-66"
+name: "정책에 따른 시스템 로깅 설정"
+severity: "high"
+category: "logging_and_audit"
+requires_root: "partial"
+
+summary: >
+  조직 정책에 따른 시스템 로깅 설정과 실제 로그 생성 여부를 점검하여
+  사고 분석, 증적 확보, 감사 대응 가능성을 확인하는 항목이다.
+
+description: >
+  syslog/rsyslog 설정 파일, 로깅 서비스 상태, 주요 로그 파일 존재 여부를 확인해
+  정책에 따른 시스템 로깅이 실제로 동작하고 있는지 점검한다.
+
+purpose: >
+  보안 사고 발생 시 원인 분석, 침해 사실 확인, 법적·감사 대응이 가능하도록
+  시스템 로그 기록 체계를 유지하기 위함이다.
+
+platform: "unix_like"
+
+references:
+  - "/etc/syslog.conf"
+  - "/etc/rsyslog.conf"
+  - "/etc/rsyslog.d/default.conf"

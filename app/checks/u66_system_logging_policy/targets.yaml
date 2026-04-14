@@ -1,0 +1,86 @@
+files:
+  optional:
+    - path: "/etc/rsyslog.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "rsyslog 기본 설정 파일"
+
+    - path: "/etc/rsyslog.d/default.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "rsyslog 추가 설정 파일"
+
+    - path: "/etc/syslog.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "syslog 기본 설정 파일"
+
+    - path: "/var/log/syslog"
+      type: "log"
+      parser: "plain_text"
+      description: "시스템 로그 파일"
+
+    - path: "/var/log/messages"
+      type: "log"
+      parser: "plain_text"
+      description: "메시지 로그 파일"
+
+    - path: "/var/log/auth.log"
+      type: "log"
+      parser: "plain_text"
+      description: "인증 로그 파일"
+
+    - path: "/var/log/secure"
+      type: "log"
+      parser: "plain_text"
+      description: "보안 로그 파일"
+
+commands:
+  - name: "grep_rsyslog_conf"
+    command: "grep -v '^#' /etc/rsyslog.conf"
+    description: "주석 제외 rsyslog 설정 확인"
+
+  - name: "grep_syslog_conf"
+    command: "grep -v '^#' /etc/syslog.conf"
+    description: "주석 제외 syslog 설정 확인"
+
+  - name: "rsyslog_service_status"
+    command: "systemctl is-active rsyslog"
+    description: "rsyslog 서비스 활성 상태 확인"
+
+  - name: "syslog_service_status"
+    command: "systemctl is-active syslog"
+    description: "syslog 서비스 활성 상태 확인"
+
+evidence:
+  - key: "rsyslog_conf_exists"
+    source: "/etc/rsyslog.conf"
+    description: "rsyslog 설정 파일 존재 여부"
+
+  - key: "syslog_conf_exists"
+    source: "/etc/syslog.conf"
+    description: "syslog 설정 파일 존재 여부"
+
+  - key: "logging_policy_lines"
+    source: "rsyslog/syslog"
+    description: "활성 로깅 설정 라인"
+
+  - key: "rsyslog_service_active"
+    source: "systemctl is-active rsyslog"
+    description: "rsyslog 서비스 활성 여부"
+
+  - key: "syslog_service_active"
+    source: "systemctl is-active syslog"
+    description: "syslog 서비스 활성 여부"
+
+  - key: "major_log_files"
+    source: "/var/log/*"
+    description: "주요 로그 파일 존재 여부"
+
+  - key: "major_log_file_count"
+    source: "/var/log/*"
+    description: "존재하는 주요 로그 파일 수"
+
+  - key: "logging_policy_document_note"
+    source: "manual"
+    description: "로깅 정책 문서 확인 필요 여부"

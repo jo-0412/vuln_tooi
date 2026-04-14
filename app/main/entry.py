@@ -22,6 +22,7 @@ from app.main.u18_runner import U18Runner
 from app.main.u23_runner import U23Runner
 from app.main.u28_runner import U28Runner
 from app.main.u64_runner import U64Runner
+from app.main.u66_runner import U66Runner
 from app.output.console_formatter import ConsoleFormatter
 from app.compat import to_text
 
@@ -106,6 +107,9 @@ def build_runners(check_code):
     if normalized == "U-64":
         return [U64Runner()]
 
+    if normalized == "U-66":
+        return [U66Runner()]
+
     if normalized == "ALL":
         return [
             U01Runner(),
@@ -117,6 +121,7 @@ def build_runners(check_code):
             U23Runner(),
             U28Runner(),
             U64Runner(),
+            U66Runner(),
         ]
 
     return None

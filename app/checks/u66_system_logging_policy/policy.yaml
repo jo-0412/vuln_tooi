@@ -1,0 +1,80 @@
+check_type: "composite"
+
+profile: "default_linux_phase1"
+
+rules:
+  logging_config_rule:
+    description: >
+      rsyslog 또는 syslog 설정 파일이 존재하고
+      활성 설정 라인이 있는지 확인한다.
+
+    optional_files:
+      - "/etc/rsyslog.conf"
+      - "/etc/rsyslog.d/default.conf"
+      - "/etc/syslog.conf"
+
+    policy_presence_patterns:
+      - "*.info"
+      - "*.notice"
+      - "*.warn"
+      - "*.err"
+      - "auth"
+      - "authpriv"
+      - "mail"
+      - "daemon"
+      - "/var/log/"
+
+    pass_condition: >
+      rsyslog 또는 syslog 설정 파일이 존재하고
+      활성 로그 기록 설정 흔적이 확인되는 경우
+
+  logging_service_rule:
+    description: >
+      rsyslog 또는 syslog 서비스 중 하나가 활성 상태인지 확인한다.
+
+    accepted_commands:
+      - "rsyslog_service_status"
+      - "syslog_service_status"
+
+    pass_condition: >
+      rsyslog 또는 syslog 서비스 중 하나가 active 상태인 경우
+
+  log_file_rule:
+    description: >
+      주요 로그 파일이 실제로 존재하는지 확인한다.
+
+    optional_files:
+      - "/var/log/syslog"
+      - "/var/log/messages"
+      - "/var/log/auth.log"
+      - "/var/log/secure"
+
+    pass_condition: >
+      주요 로그 파일 중 하나 이상이 존재하는 경우
+
+final_decision:
+  pass:
+    - "로깅 설정 흔적, 서비스 상태, 실제 로그 파일 중 2개 이상이 확인됨"
+
+  fail:
+    - "로깅 설정 흔적이 없고 서비스도 비활성 또는 미확인 상태이며 로그 파일도 없음"
+
+  manual:
+    - "일부 흔적은 있으나 정책 준수 여부 판단이 어려움"
+    - "로깅 정책 문서는 별도 운영 증적으로 확인 필요"
+
+  error:
+    - "설정 파일 또는 서비스 상태 수집에 실패함"
+
+decision_logic:
+  phase1_rule: >
+    1차 구현에서는 아래 3가지 중 2가지 이상이 확인되면 PASS 후보로 본다.
+    1) 로깅 설정 파일 및 활성 설정 흔적
+    2) 로깅 서비스 활성 상태
+    3) 주요 로그 파일 존재
+
+    셋 다 부족하면 FAIL,
+    일부만 확인되면 MANUAL 로 본다.
+
+thresholds:
+  minimum_positive_signals_for_pass: 2
