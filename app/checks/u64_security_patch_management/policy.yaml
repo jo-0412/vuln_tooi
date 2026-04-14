@@ -1,0 +1,82 @@
+check_type: "composite"
+
+profile: "default_linux_phase1"
+
+rules:
+  patch_configuration_rule:
+    description: >
+      자동 업데이트 설정 또는 패치 정책 흔적이 존재하는지 확인한다.
+
+    optional_files:
+      - "/etc/apt/apt.conf.d/20auto-upgrades"
+      - "/etc/apt/apt.conf.d/50unattended-upgrades"
+
+    configuration_patterns:
+      auto_upgrade:
+        - "APT::Periodic::Update-Package-Lists"
+        - "APT::Periodic::Unattended-Upgrade"
+
+      unattended_upgrade:
+        - "Unattended-Upgrade"
+        - "Allowed-Origins"
+        - "Origins-Pattern"
+
+    pass_condition: >
+      자동 업데이트 설정 파일이 존재하고
+      관련 설정 흔적이 확인되는 경우
+
+  patch_history_rule:
+    description: >
+      최근 패치 이력 또는 자동 업데이트 로그가 존재하는지 확인한다.
+
+    optional_files:
+      - "/var/log/apt/history.log"
+      - "/var/log/unattended-upgrades/unattended-upgrades.log"
+
+    pass_condition: >
+      최근 패키지 업그레이드 이력 또는 자동 업데이트 로그가 존재하는 경우
+
+  package_status_rule:
+    description: >
+      현재 업그레이드 가능한 패키지와 패치 도구 설치 여부를 확인한다.
+
+    accepted_commands:
+      - "apt_upgradable"
+      - "dpkg_unattended"
+      - "hostnamectl"
+      - "uname_kernel"
+
+    pass_condition: >
+      unattended-upgrades 설치 흔적 또는 패치 관리 가능 상태가 확인되는 경우
+
+final_decision:
+  pass:
+    - "패치 설정 흔적이 있고 최근 관리 이력이 확인됨"
+
+  fail:
+    - "패치 정책 흔적이 없고 최근 패치 관리 이력도 확인되지 않음"
+
+  manual:
+    - "일부 흔적은 있으나 실제 주기 관리 여부 판단이 어려움"
+
+  error:
+    - "파일 또는 명령 수집에 실패함"
+
+decision_logic:
+  phase1_rule: >
+    1차 구현에서는 아래 3가지 중 2가지 이상이 확인되면 PASS 후보로 본다.
+    1) 자동 업데이트/패치 설정 흔적
+    2) 최근 패치 이력 또는 로그
+    3) 패치 관리 도구/패치 상태 확인 흔적
+
+    세 가지 모두 부족하면 FAIL,
+    일부만 확인되면 MANUAL 로 본다.
+
+evidence_required:
+  - "OS/커널 버전"
+  - "현재 패치 수준 확인 흔적"
+  - "업그레이드 가능 패키지 목록"
+  - "정기 패치 관리 흔적"
+
+thresholds:
+  minimum_positive_signals_for_pass: 2

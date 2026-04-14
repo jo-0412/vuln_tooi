@@ -1,0 +1,87 @@
+files:
+  optional:
+    - path: "/etc/apt/apt.conf.d/20auto-upgrades"
+      type: "config"
+      parser: "plain_text"
+      description: "자동 업데이트 설정 파일"
+
+    - path: "/etc/apt/apt.conf.d/50unattended-upgrades"
+      type: "config"
+      parser: "plain_text"
+      description: "무인 보안 업데이트 설정 파일"
+
+    - path: "/var/log/apt/history.log"
+      type: "log"
+      parser: "plain_text"
+      description: "APT 패키지 설치 및 업그레이드 이력"
+
+    - path: "/var/log/unattended-upgrades/unattended-upgrades.log"
+      type: "log"
+      parser: "plain_text"
+      description: "자동 보안 업데이트 로그"
+
+commands:
+  - name: "hostnamectl"
+    command: "hostnamectl"
+    description: "OS 및 커널 버전 정보 확인"
+
+  - name: "uname_kernel"
+    command: "uname -r"
+    description: "현재 커널 버전 확인"
+
+  - name: "apt_upgradable"
+    command: "apt list --upgradable"
+    description: "업그레이드 가능한 패키지 목록 확인"
+
+  - name: "dpkg_unattended"
+    command: "dpkg -l unattended-upgrades"
+    description: "unattended-upgrades 설치 여부 확인"
+
+  - name: "apt_policy"
+    command: "apt-cache policy"
+    description: "APT 저장소 및 우선순위 정보 확인"
+
+  - name: "grep_auto_upgrade"
+    command: "grep -R \"Unattended-Upgrade\\|Update-Package-Lists\" /etc/apt/apt.conf.d/"
+    description: "자동 업데이트 관련 설정 흔적 확인"
+
+evidence:
+  - key: "auto_upgrade_config_exists"
+    source: "/etc/apt/apt.conf.d/20auto-upgrades"
+    description: "자동 업데이트 설정 파일 존재 여부"
+
+  - key: "unattended_upgrade_config_exists"
+    source: "/etc/apt/apt.conf.d/50unattended-upgrades"
+    description: "무인 보안 업데이트 설정 파일 존재 여부"
+
+  - key: "auto_upgrade_enabled"
+    source: "/etc/apt/apt.conf.d/20auto-upgrades"
+    description: "자동 패키지 목록 갱신/업데이트 활성화 여부"
+
+  - key: "unattended_installed"
+    source: "dpkg -l unattended-upgrades"
+    description: "unattended-upgrades 설치 여부"
+
+  - key: "recent_patch_history_present"
+    source: "/var/log/apt/history.log"
+    description: "최근 패치 이력 존재 여부"
+
+  - key: "unattended_log_present"
+    source: "/var/log/unattended-upgrades/unattended-upgrades.log"
+    description: "자동 업데이트 로그 존재 여부"
+
+  - key: "upgradable_packages"
+    source: "apt list --upgradable"
+    description: "업그레이드 가능한 패키지 목록"
+
+  - key: "upgradable_package_count"
+    source: "apt list --upgradable"
+    description: "업그레이드 가능한 패키지 수"
+
+  - key: "os_version_info"
+    source: "hostnamectl"
+    description: "OS 및 커널 버전 정보"
+
+  - key: "kernel_version"
+    source: "uname -r"
+    description: "현재 커널 버전"
