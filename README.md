@@ -1,12 +1,11 @@
 # Vulnerability Management Tool
 
-리눅스 서버 취약점 점검 도구 프로젝트입니다.  
-점검 항목을 독립적으로 관리하고, 공통 수집 로직과 정책 기준을 분리하여  
-확장성과 유지보수성을 높이도록 구성했습니다.
+A Linux server vulnerability assessment tool designed with modular architecture for scalability and maintainability.
+Each vulnerability check is managed independently, while common data collection logic and policy criteria are separated for maximum flexibility.
 
 ---
 
-# Project Structure
+## 📁 Project Structure
 
 ```text
 vuln-management-tool/
@@ -22,82 +21,92 @@ vuln-management-tool/
 ├─ docs/
 ├─ samples/
 └─ reports/
+```
 
-Folder Overview
-app/
+---
 
-프로젝트의 핵심 로직이 들어가는 메인 영역입니다.
-점검 실행, 판정, 결과 생성에 필요한 내부 모듈들을 모아두는 폴더입니다.
+## 📦 Folder Overview
 
-app/main/
+### app/
 
-프로그램 실행 흐름을 담당하는 영역입니다.
-어떤 점검을 시작할지, 어떤 순서로 실행할지, 전체 동작을 제어합니다.
+Core module of the project containing the main logic for execution, evaluation, and result generation.
 
-app/checks/
+### app/main/
 
-가장 핵심이 되는 폴더입니다.
-각 취약점 점검 항목을 독립적으로 분리해서 관리하는 공간입니다.
-즉, 항목별 규칙과 점검 기준을 정리하는 영역입니다.
+Controls the overall execution flow.
+Determines which checks to run and manages the execution order.
 
-app/collectors/
+### app/checks/
 
-시스템 정보를 읽어오는 공통 수집기 영역입니다.
-파일 내용, 권한, 계정 정보, PAM 설정, 서비스 상태, 패키지 정보처럼
-여러 점검 항목에서 공통으로 사용하는 수집 로직을 담당합니다.
+Contains individual vulnerability checks.
+Each check is implemented as an independent module with its own validation logic and rules.
 
-app/policies/
+### app/collectors/
 
-조직이나 환경에 따라 다른 보안 기준을 관리하는 영역입니다.
-기본 정책, 강화 정책, 고객사 맞춤 정책처럼
-판정 기준을 분리해서 관리할 수 있도록 구성합니다.
+Handles reusable system data collection.
+Includes logic for retrieving file contents, permissions, account information, PAM settings, service status, and package data.
 
-app/models/
+### app/policies/
 
-점검 결과를 일정한 형식으로 맞추기 위한 구조를 담당하는 영역입니다.
-각 점검 항목의 결과를 동일한 형식으로 관리하기 위한 기반이 됩니다.
+Manages security policies that vary by environment.
+Supports default, hardened, and custom organizational policies.
 
-app/output/
+### app/models/
 
-점검 결과를 사용자에게 보여주는 출력 영역입니다.
-콘솔 출력, JSON 저장, 보고서 생성 등
-결과를 다양한 형태로 표현하기 위한 폴더입니다.
+Defines standardized data structures for storing and managing check results.
 
-app/common/
+### app/output/
 
-프로젝트 전반에서 공통으로 사용하는 값과 기능을 모아두는 영역입니다.
-상수, 예외 처리, 공통 유틸리티 같은
-반복 사용되는 요소들을 정리하는 폴더입니다.
+Handles result presentation.
+Supports console output, JSON export, and report generation.
 
-config/
+### app/common/
 
-프로그램 전체 설정을 관리하는 폴더입니다.
-실행 옵션, 환경 설정, 로깅 설정 등을 보관합니다.
+Contains shared utilities and common components such as constants, exception handling, and helper functions.
 
-docs/
+---
 
-각 취약점 항목에 대한 설명 문서를 정리하는 폴더입니다.
-항목 의미, 점검 기준, 조치 방향 등을 문서 형태로 관리합니다.
+## ⚙️ Additional Directories
 
-samples/
+### config/
 
-점검 결과 예시를 저장하는 폴더입니다.
-정상 결과와 취약 결과 예시를 보관하여
-테스트나 설명 자료로 활용할 수 있습니다.
+Stores global configuration such as execution options, environment settings, and logging configuration.
 
-reports/
+### docs/
 
-실행 후 생성된 점검 보고서를 저장하는 폴더입니다.
-실제 검사 결과가 누적되는 출력 저장소 역할을 합니다.
+Contains documentation for each vulnerability check, including descriptions, criteria, and remediation guidance.
 
-Design Intent
+### samples/
 
-이 프로젝트는 다음과 같은 방향으로 설계합니다.
+Provides example outputs for both secure and vulnerable cases.
+Useful for testing and demonstration.
 
-점검 항목별 로직을 독립적으로 관리
-공통 수집 기능은 재사용 가능하도록 분리
-정책 기준은 환경별로 교체 가능하게 설계
-출력 형식은 확장 가능하도록 분리
+### reports/
 
-이 구조를 통해 새로운 점검 항목을 추가하거나
-기존 기준을 수정할 때 변경 범위를 최소화할 수 있습니다.
+Stores generated vulnerability assessment reports.
+Acts as the output repository for scan results.
+
+---
+
+## 🎯 Design Principles
+
+* Independent management of vulnerability checks
+* Reusable and centralized data collection logic
+* Policy-based evaluation adaptable to different environments
+* Extensible output formats for various reporting needs
+
+---
+
+## 🚀 Key Benefits
+
+* Easy to add new vulnerability checks
+* Minimal impact when modifying existing logic
+* High maintainability through clear separation of concerns
+* Flexible adaptation to enterprise security requirements
+
+---
+
+## 📌 Overview
+
+This project is structured to support scalable vulnerability assessment for Linux environments.
+By separating checks, collectors, and policies, it ensures that updates and extensions can be made efficiently without affecting the entire system.
