@@ -1,0 +1,53 @@
+title: "U-06 Restrict su Command Usage to Authorized Accounts"
+
+pass:
+  summary: "The use of the su command is restricted to an authorized group."
+  detail: >
+    The configuration confirms that su command usage is limited to an authorized group,
+    reducing the risk of uncontrolled account switching and unauthorized root privilege escalation.
+
+fail:
+  summary: "The su command is not adequately restricted."
+  detail: >
+    If ordinary users are allowed to use the su command freely,
+    they may switch to other accounts without authorization
+    or attempt to obtain root privileges.
+
+manual:
+  summary: "The su restriction policy requires manual verification."
+  detail: >
+    Some related settings are present, but due to PAM usage differences
+    or distribution-specific behavior, additional manual verification is required.
+
+error:
+  summary: "An error occurred while running the check."
+  detail: >
+    An error occurred while collecting files or metadata related to su access control.
+
+remediation:
+  summary: "Create a dedicated group for su usage and allow only authorized users."
+  actions:
+    - "Create a dedicated group such as wheel for su usage."
+    - "Add only authorized accounts to the wheel group."
+    - "If PAM is used, configure pam_wheel.so in /etc/pam.d/su."
+    - "Example: auth required pam_wheel.so use_uid"
+    - "Or: auth required pam_wheel.so group=wheel"
+    - "If PAM is not used, change the group owner of /usr/bin/su to wheel."
+    - "If PAM is not used, restrict the permission of /usr/bin/su to 4750 or more secure."
+    - "After configuration changes, log in again and verify that su access is properly restricted."
+
+evidence_labels:
+  wheel_group_exists: "Authorized su group exists"
+  wheel_group_members: "Authorized su group members"
+  pam_su_file_exists: "PAM policy file for su exists"
+  pam_wheel_enabled: "pam_wheel.so is enabled"
+  pam_wheel_mode: "pam_wheel configuration mode"
+  su_binary_exists: "su executable exists"
+  su_binary_group: "Group owner of su executable"
+  su_binary_mode: "Permission mode of su executable"
+  su_restriction_method: "Detected su restriction method"
+
+notes:
+  - "If the system is used only by the root account and no ordinary user accounts exist, su restriction may not be necessary."
+  - "Linux systems may use either a PAM-based restriction method or an executable permission-based restriction method."
+  - "The wheel group may not exist by default depending on the Linux distribution."

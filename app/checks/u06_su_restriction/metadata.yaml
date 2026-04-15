@@ -1,0 +1,26 @@
+code: "U-06"
+name: "Restrict su Command Usage to Authorized Accounts"
+severity: "high"
+category: "account_management"
+requires_root: "partial"
+
+summary: >
+  This item checks whether the use of the su command is restricted to a specific group
+  in order to prevent uncontrolled account switching and unauthorized root privilege escalation.
+
+description: >
+  This check reviews /etc/group, /etc/pam.d/su, and /usr/bin/su
+  to determine whether an authorized group for su exists and whether
+  su access control is enforced through PAM configuration or executable file permissions.
+
+purpose: >
+  The purpose of this check is to ensure that only authorized users are allowed
+  to use the su command, thereby preventing ordinary users from switching accounts
+  or attempting to obtain root privileges without proper authorization.
+
+platform: "linux"
+
+references:
+  - "/etc/group"
+  - "/etc/pam.d/su"
+  - "/usr/bin/su"

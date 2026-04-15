@@ -1,0 +1,67 @@
+files:
+  required:
+    - path: "/etc/group"
+      type: "config"
+      parser: "group_file"
+      description: "Group information file"
+
+    - path: "/usr/bin/su"
+      type: "binary"
+      parser: "file_metadata"
+      description: "su executable file"
+
+  optional:
+    - path: "/etc/pam.d/su"
+      type: "config"
+      parser: "pam"
+      description: "PAM policy file for su"
+
+commands:
+  - name: "grep_wheel_group"
+    command: "cat /etc/group | grep wheel"
+    description: "Check whether the wheel group exists"
+
+  - name: "grep_pam_wheel"
+    command: "grep -v '^#' /etc/pam.d/su | grep pam_wheel"
+    description: "Check whether pam_wheel is configured"
+
+  - name: "ls_su_binary"
+    command: "ls -l /usr/bin/su"
+    description: "Check the group and permission of the su executable"
+
+evidence:
+  - key: "wheel_group_exists"
+    source: "/etc/group"
+    description: "Whether an authorized su group such as wheel exists"
+
+  - key: "wheel_group_members"
+    source: "/etc/group"
+    description: "Members of the authorized su group"
+
+  - key: "pam_su_file_exists"
+    source: "/etc/pam.d/su"
+    description: "Whether the PAM policy file for su exists"
+
+  - key: "pam_wheel_enabled"
+    source: "/etc/pam.d/su"
+    description: "Whether pam_wheel.so is applied"
+
+  - key: "pam_wheel_mode"
+    source: "/etc/pam.d/su"
+    description: "How pam_wheel is configured"
+
+  - key: "su_binary_exists"
+    source: "/usr/bin/su"
+    description: "Whether the su executable exists"
+
+  - key: "su_binary_group"
+    source: "/usr/bin/su"
+    description: "Group owner of the su executable"
+
+  - key: "su_binary_mode"
+    source: "/usr/bin/su"
+    description: "Permission mode of the su executable"
+
+  - key: "su_restriction_method"
+    source: "/etc/pam.d/su, /usr/bin/su"
+    description: "Detected su restriction method"

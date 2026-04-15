@@ -1,0 +1,98 @@
+check_type: "composite"
+
+profile: "default_linux"
+
+decision_order:
+  - "pam_restriction_rule"
+  - "binary_permission_rule"
+
+rules:
+  pam_restriction_rule:
+    description: >
+      If PAM is used, /etc/pam.d/su should contain pam_wheel.so
+      and the wheel group should exist.
+
+    required_files:
+      - "/etc/group"
+
+    optional_files:
+      - "/etc/pam.d/su"
+
+    group_requirements:
+      allowed_group_names:
+        - "wheel"
+      must_exist: true
+
+    pam_requirements:
+      target_file: "/etc/pam.d/su"
+      accepted_modules:
+        - "pam_wheel.so"
+
+      accepted_patterns:
+        - "auth required pam_wheel.so use_uid"
+        - "auth required pam_wheel.so group=wheel"
+        - "auth requisite pam_wheel.so use_uid"
+        - "auth requisite pam_wheel.so group=wheel"
+
+    when_optional_file_missing: "manual"
+    when_required_file_missing: "error"
+
+    pass_condition: >
+      The wheel group exists and /etc/pam.d/su contains
+      pam_wheel.so with use_uid or group=wheel.
+
+    fail_condition: >
+      /etc/pam.d/su exists but does not contain pam_wheel.so,
+      or the authorized su group does not exist.
+
+  binary_permission_rule:
+    description: >
+      If PAM is not used, /usr/bin/su should belong to the wheel group
+      and its permission should be restricted to 4750 or more secure.
+
+    required_files:
+      - "/etc/group"
+      - "/usr/bin/su"
+
+    group_requirements:
+      allowed_group_names:
+        - "wheel"
+      must_exist: true
+
+    su_binary_requirements:
+      allowed_group_names:
+        - "wheel"
+
+      allowed_modes:
+        - "4750"
+
+      max_mode_octal: "4750"
+
+    when_required_file_missing: "error"
+
+    pass_condition: >
+      The wheel group exists, /usr/bin/su belongs to the wheel group,
+      and its permission is restricted to 4750 or more secure.
+
+    fail_condition: >
+      /usr/bin/su does not belong to the wheel group,
+      or its permission is not restricted to 4750 or more secure.
+
+final_decision:
+  pass:
+    - "The wheel group exists and su restriction is enforced through PAM or executable file permission."
+
+  fail:
+    - "No authorized su group exists, or all users are allowed to use the su command."
+    - "pam_wheel is not configured and /usr/bin/su is not properly restricted."
+
+  manual:
+    - "The PAM file is missing or the environment requires manual verification."
+
+  error:
+    - "Required file collection or metadata inspection failed."
+
+thresholds:
+  required_group_name: "wheel"
+  required_su_group: "wheel"
+  required_su_mode: "4750"
