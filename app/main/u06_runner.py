@@ -22,9 +22,9 @@ class U06Runner(object):
     U-06 사용자 계정 su 기능 제한 점검 실행기
 
     판정 기준 개요:
-    1) /etc/group 에 wheel 그룹이 존재하는지 확인
+    1) /etc/group 에 허용 그룹(wheel)이 존재하는지 확인
     2) /etc/pam.d/su 가 존재하면 PAM 방식으로 pam_wheel 적용 여부를 우선 판정
-    3) PAM 파일이 없으면 /usr/bin/su 그룹/권한으로 비PAM 방식 판정
+    3) PAM 파일이 없으면 /usr/bin/su 또는 /bin/su 의 그룹/권한으로 비PAM 방식 판정
     """
 
     def __init__(self, check_dir=None):
@@ -54,7 +54,10 @@ class U06Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-06"),
-            name=self.metadata.get("name", "Restrict su Command Usage to Authorized Accounts"),
+            name=self.metadata.get(
+                "name",
+                "Restrict su Command Usage to Authorized Accounts"
+            ),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "account_management"),
             status="MANUAL",
@@ -74,16 +77,20 @@ class U06Runner(object):
             remediation_steps=remediation_steps
         )
 
-        # 1. 필수/선택 파일 읽기
+        # 1. su 실행 파일 경로 결정
+        su_path = self._resolve_su_path()
+
+        # 2. 필수/선택 파일 읽기
         group_file = self.reader.read_file("/etc/group")
         pam_file = self.reader.read_file("/etc/pam.d/su")
-        su_stat = self.reader.inspect_file("/usr/bin/su")
+        su_stat = self.reader.inspect_file(su_path)
 
         result.raw["group_file"] = group_file.to_dict() if group_file else None
         result.raw["pam_file"] = pam_file.to_dict() if pam_file else None
         result.raw["su_stat"] = su_stat
+        result.raw["su_path"] = su_path
 
-        # 2. 필수 파일 존재 여부 확인
+        # 3. 필수 파일 존재 여부 확인
         if not self.reader.file_exists(group_file):
             return self._build_missing_required_result(
                 result,
@@ -93,10 +100,10 @@ class U06Runner(object):
         if not su_stat.get("exists"):
             return self._build_missing_required_result(
                 result,
-                "/usr/bin/su is missing or could not be inspected."
+                "su binary was not found in /usr/bin/su or /bin/su."
             )
 
-        # 3. 정책 기준 읽기
+        # 4. 정책 기준 읽기
         allowed_group_names = self._get_allowed_group_names()
         required_su_group_names = self._get_required_su_group_names()
         required_su_mode = self._get_required_su_mode()
@@ -104,7 +111,7 @@ class U06Runner(object):
         accepted_patterns = self._get_pam_accepted_patterns()
         accepted_modules = self._get_pam_accepted_modules()
 
-        # 4. 그룹 파일 파싱
+        # 5. 그룹 파일 파싱
         group_info = self.reader.parse_group_file(group_file.content)
         groups = group_info.get("groups", [])
 
@@ -117,7 +124,7 @@ class U06Runner(object):
             wheel_group_members = allowed_group.get("members", [])
             wheel_group_excerpt = to_text(allowed_group.get("raw_line", ""))
 
-        # 5. PAM 파일 파싱
+        # 6. PAM 파일 파싱
         pam_su_file_exists = self.reader.file_exists(pam_file)
         pam_wheel_enabled = False
         pam_wheel_mode = ""
@@ -137,10 +144,11 @@ class U06Runner(object):
 
             result.raw["pam_info"] = pam_info
 
-        # 6. su 실행 파일 메타데이터 확인
+        # 7. su 실행 파일 메타데이터 확인
         su_binary_exists = bool(su_stat.get("exists"))
         su_binary_group = to_text(su_stat.get("group_name", ""))
         su_binary_mode = to_text(su_stat.get("mode_octal", ""))
+
         su_binary_group_ok = self.reader.is_group_allowed(
             su_binary_group,
             required_su_group_names
@@ -150,7 +158,7 @@ class U06Runner(object):
             required_su_mode
         )
 
-        # 7. 제한 방식 판정
+        # 8. 제한 방식 판정
         restriction_method = "none"
         reasons = []
 
@@ -158,8 +166,10 @@ class U06Runner(object):
             # PAM 파일이 있으면 PAM 방식 판정을 우선한다.
             if wheel_group_exists and pam_wheel_enabled:
                 restriction_method = "pam"
+
                 reasons.append("The authorized su group exists.")
                 reasons.append("The PAM configuration for su includes pam_wheel.so.")
+
                 if pam_wheel_mode:
                     reasons.append(
                         "The detected PAM restriction mode is '{0}'.".format(
@@ -183,12 +193,14 @@ class U06Runner(object):
                 )
             else:
                 restriction_method = "pam_not_enforced"
+
                 if not wheel_group_exists:
                     reasons.append(
                         "The authorized su group '{0}' does not exist.".format(
                             allowed_group_names[0] if allowed_group_names else "wheel"
                         )
                     )
+
                 if not pam_wheel_enabled:
                     if pam_module_found:
                         reasons.append(
@@ -217,14 +229,17 @@ class U06Runner(object):
             # PAM 파일이 없으면 실행 파일 그룹/권한 기반으로 판정한다.
             if wheel_group_exists and su_binary_group_ok and su_binary_mode_ok:
                 restriction_method = "binary_permission"
+
                 reasons.append("The authorized su group exists.")
                 reasons.append(
-                    "/usr/bin/su belongs to the authorized group '{0}'.".format(
+                    "{0} belongs to the authorized group '{1}'.".format(
+                        su_path,
                         su_binary_group
                     )
                 )
                 reasons.append(
-                    "/usr/bin/su permission is restricted to {0}, which meets the required maximum of {1}.".format(
+                    "{0} permission is restricted to {1}, which meets the required maximum of {2}.".format(
+                        su_path,
                         su_binary_mode,
                         required_su_mode
                     )
@@ -246,6 +261,7 @@ class U06Runner(object):
                 )
             else:
                 restriction_method = "binary_not_enforced"
+
                 reasons.append(
                     "The PAM configuration file for su is missing, so binary-based restriction was evaluated."
                 )
@@ -256,15 +272,19 @@ class U06Runner(object):
                             allowed_group_names[0] if allowed_group_names else "wheel"
                         )
                     )
+
                 if not su_binary_group_ok:
                     reasons.append(
-                        "/usr/bin/su is not assigned to the required group. Current group: {0}".format(
+                        "{0} is not assigned to the required group. Current group: {1}".format(
+                            su_path,
                             su_binary_group or "(unknown)"
                         )
                     )
+
                 if not su_binary_mode_ok:
                     reasons.append(
-                        "/usr/bin/su permission is not restricted enough. Current mode: {0}, required maximum: {1}".format(
+                        "{0} permission is not restricted enough. Current mode: {1}, required maximum: {2}".format(
+                            su_path,
                             su_binary_mode or "(unknown)",
                             required_su_mode
                         )
@@ -285,7 +305,7 @@ class U06Runner(object):
                     reasons
                 )
 
-        # 8. 증적 추가
+        # 9. 증적 추가
         result.add_evidence(
             key="wheel_group_exists",
             label=self._label("wheel_group_exists"),
@@ -333,7 +353,7 @@ class U06Runner(object):
         result.add_evidence(
             key="su_binary_exists",
             label=self._label("su_binary_exists"),
-            source="/usr/bin/su",
+            source=su_path,
             value=su_binary_exists,
             status="ok" if su_binary_exists else "fail"
         )
@@ -341,7 +361,7 @@ class U06Runner(object):
         result.add_evidence(
             key="su_binary_group",
             label=self._label("su_binary_group"),
-            source="/usr/bin/su",
+            source=su_path,
             value=su_binary_group if su_binary_group else "(unknown)",
             status="ok" if su_binary_group_ok else "fail"
         )
@@ -349,7 +369,7 @@ class U06Runner(object):
         result.add_evidence(
             key="su_binary_mode",
             label=self._label("su_binary_mode"),
-            source="/usr/bin/su",
+            source=su_path,
             value=su_binary_mode if su_binary_mode else "(unknown)",
             status="ok" if su_binary_mode_ok else "fail"
         )
@@ -357,9 +377,11 @@ class U06Runner(object):
         result.add_evidence(
             key="su_restriction_method",
             label=self._label("su_restriction_method"),
-            source="/etc/pam.d/su, /usr/bin/su",
+            source="/etc/pam.d/su, {0}".format(su_path),
             value=restriction_method,
-            status="ok" if result.status == "PASS" else ("fail" if result.status == "FAIL" else "manual")
+            status="ok" if result.status == "PASS" else (
+                "fail" if result.status == "FAIL" else "manual"
+            )
         )
 
         result.raw["parsed"] = {
@@ -374,23 +396,52 @@ class U06Runner(object):
             "su_binary_group": su_binary_group,
             "su_binary_mode": su_binary_mode,
             "restriction_method": restriction_method,
+            "su_path": su_path,
         }
 
         return result
 
+    def _resolve_su_path(self):
+        """
+        배포판별 su 경로 차이를 흡수하기 위해 후보 경로를 순서대로 확인한다.
+        """
+        candidates = [
+            "/usr/bin/su",
+            "/bin/su",
+        ]
+
+        for path in candidates:
+            try:
+                if os.path.exists(path):
+                    return path
+            except Exception:
+                pass
+
+        # 둘 다 없으면 기존 기본 경로를 반환하여 오류 메시지를 일관되게 유지한다.
+        return "/usr/bin/su"
+
     def _get_allowed_group_names(self):
         rule = self.policy.get("rules", {}).get("pam_restriction_rule", {})
-        values = rule.get("group_requirements", {}).get("allowed_group_names", ["wheel"])
+        values = rule.get("group_requirements", {}).get(
+            "allowed_group_names",
+            ["wheel"]
+        )
         return self._normalize_text_list(values, default=["wheel"])
 
     def _get_required_su_group_names(self):
         rule = self.policy.get("rules", {}).get("binary_permission_rule", {})
-        values = rule.get("su_binary_requirements", {}).get("allowed_group_names", ["wheel"])
+        values = rule.get("su_binary_requirements", {}).get(
+            "allowed_group_names",
+            ["wheel"]
+        )
         return self._normalize_text_list(values, default=["wheel"])
 
     def _get_required_su_mode(self):
         rule = self.policy.get("rules", {}).get("binary_permission_rule", {})
-        value = rule.get("su_binary_requirements", {}).get("max_mode_octal", "4750")
+        value = rule.get("su_binary_requirements", {}).get(
+            "max_mode_octal",
+            "4750"
+        )
         return to_text(value).strip() or "4750"
 
     def _get_pam_accepted_patterns(self):
@@ -400,12 +451,16 @@ class U06Runner(object):
 
     def _get_pam_accepted_modules(self):
         rule = self.policy.get("rules", {}).get("pam_restriction_rule", {})
-        values = rule.get("pam_requirements", {}).get("accepted_modules", ["pam_wheel.so"])
+        values = rule.get("pam_requirements", {}).get(
+            "accepted_modules",
+            ["pam_wheel.so"]
+        )
         return self._normalize_text_list(values, default=["pam_wheel.so"])
 
     @staticmethod
     def _normalize_text_list(values, default=None):
         result = []
+
         for item in values or []:
             text = to_text(item).strip()
             if text:
@@ -424,10 +479,18 @@ class U06Runner(object):
                 )
             )
 
-        self.metadata = self._load_yaml(os.path.join(self.check_dir, "metadata.yaml"))
-        self.targets = self._load_yaml(os.path.join(self.check_dir, "targets.yaml"))
-        self.policy = self._load_yaml(os.path.join(self.check_dir, "policy.yaml"))
-        self.messages = self._load_yaml(os.path.join(self.check_dir, "messages.yaml"))
+        self.metadata = self._load_yaml(
+            os.path.join(self.check_dir, "metadata.yaml")
+        )
+        self.targets = self._load_yaml(
+            os.path.join(self.check_dir, "targets.yaml")
+        )
+        self.policy = self._load_yaml(
+            os.path.join(self.check_dir, "policy.yaml")
+        )
+        self.messages = self._load_yaml(
+            os.path.join(self.check_dir, "messages.yaml")
+        )
 
     @staticmethod
     def _load_yaml(path):
@@ -472,6 +535,7 @@ class U06Runner(object):
     @staticmethod
     def _merge_detail(base_detail, reasons):
         filtered = []
+
         for reason in reasons:
             normalized = to_text(reason).strip()
             if normalized:

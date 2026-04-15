@@ -5,16 +5,21 @@ files:
       parser: "group_file"
       description: "Group information file"
 
-    - path: "/usr/bin/su"
-      type: "binary"
-      parser: "file_metadata"
-      description: "su executable file"
-
   optional:
     - path: "/etc/pam.d/su"
       type: "config"
       parser: "pam"
       description: "PAM policy file for su"
+
+    - path: "/usr/bin/su"
+      type: "binary"
+      parser: "file_metadata"
+      description: "su executable file"
+
+    - path: "/bin/su"
+      type: "binary"
+      parser: "file_metadata"
+      description: "Alternative su executable path"
 
 commands:
   - name: "grep_wheel_group"
@@ -26,7 +31,7 @@ commands:
     description: "Check whether pam_wheel is configured"
 
   - name: "ls_su_binary"
-    command: "ls -l /usr/bin/su"
+    command: "ls -l /usr/bin/su || ls -l /bin/su"
     description: "Check the group and permission of the su executable"
 
 evidence:
@@ -51,17 +56,17 @@ evidence:
     description: "How pam_wheel is configured"
 
   - key: "su_binary_exists"
-    source: "/usr/bin/su"
+    source: "/usr/bin/su or /bin/su"
     description: "Whether the su executable exists"
 
   - key: "su_binary_group"
-    source: "/usr/bin/su"
+    source: "/usr/bin/su or /bin/su"
     description: "Group owner of the su executable"
 
   - key: "su_binary_mode"
-    source: "/usr/bin/su"
+    source: "/usr/bin/su or /bin/su"
     description: "Permission mode of the su executable"
 
   - key: "su_restriction_method"
-    source: "/etc/pam.d/su, /usr/bin/su"
+    source: "/etc/pam.d/su, /usr/bin/su, /bin/su"
     description: "Detected su restriction method"
