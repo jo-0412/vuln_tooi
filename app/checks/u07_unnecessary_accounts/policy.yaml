@@ -1,0 +1,31 @@
+check_type: "composite"
+
+policy:
+  unnecessary_accounts:
+    description: >
+      Detect unnecessary accounts such as default, test,
+      or inactive accounts without login history.
+
+    default_accounts:
+      - "lp"
+      - "uucp"
+      - "games"
+      - "news"
+      - "sync"
+      - "shutdown"
+      - "halt"
+
+    exclude_accounts:
+      - "root"
+
+    inactivity_threshold_days: 90
+
+decision:
+  fail_if:
+    - "unnecessary_accounts_found"
+
+  manual_if:
+    - "accounts_without_login_history"
+
+  pass_if:
+    - "no_unnecessary_accounts"

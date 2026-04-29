@@ -1,0 +1,26 @@
+summary:
+  pass: "No unnecessary accounts were found."
+  fail: "Unnecessary accounts were detected on the system."
+  manual: "Some accounts require manual verification."
+
+detail:
+  pass: >
+    All accounts are necessary and properly managed.
+
+  fail: >
+    Unnecessary accounts such as default or unused accounts exist,
+    which may increase the risk of unauthorized access or misuse.
+
+  manual: >
+    Some accounts do not have login history and require manual
+    verification to determine if they are still needed.
+
+remediation:
+  summary: >
+    Remove unnecessary or unused accounts to reduce attack surface.
+
+  steps:
+    - "Review /etc/passwd and identify unnecessary accounts."
+    - "Check login history using the 'last' command."
+    - "Remove unnecessary accounts using: userdel <username>"
+    - "Verify service dependencies before removing system accounts."

@@ -1,0 +1,15 @@
+code: "U-07"
+name: "Remove Unnecessary Accounts"
+severity: "high"
+category: "account_management"
+
+description: >
+  This check ensures that unnecessary accounts such as dormant,
+  test, or default system accounts are removed to reduce the risk
+  of unauthorized access and misuse.
+
+remediation: >
+  Identify unnecessary accounts using /etc/passwd and login history,
+  and remove them using userdel after verifying service impact.
+
+requires_root: "partial"

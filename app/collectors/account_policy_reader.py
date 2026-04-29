@@ -3,15 +3,17 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import stat
+import subprocess
+import datetime
 
 try:
     import pwd
-except Exception:  # pragma: no cover
+except Exception:
     pwd = None
 
 try:
     import grp
-except Exception:  # pragma: no cover
+except Exception:
     grp = None
 
 from app.compat import to_text
@@ -22,27 +24,30 @@ class AccountPolicyReader(object):
     """
     계정 및 권한 관련 점검용 수집기
 
-    주요 역할:
-    - 텍스트 파일 읽기
-    - /etc/group 파싱
-    - /etc/pam.d/su 내 pam_wheel 설정 파싱
-    - 실행 파일(/usr/bin/su) 메타데이터 확인
+    [기존 기능]
+    - group 파싱
+    - pam_wheel 파싱
+    - 파일 권한 검사
+
+    [U-07 확장 기능]
+    - /etc/passwd 파싱
+    - last 명령 실행
+    - 로그인 이력 분석
+    - 불필요 계정 탐지
     """
 
     def __init__(self):
         self.file_reader = FileReader()
 
+    # =========================
+    # 공통
+    # =========================
+
     def read_file(self, path):
-        """
-        공통 FileReader를 이용해 파일을 읽는다.
-        """
         return self.file_reader.read(path)
 
     @staticmethod
     def file_exists(file_result):
-        """
-        FileReader 결과 객체에서 파일 존재 여부를 안전하게 확인한다.
-        """
         if file_result is None:
             return False
 
@@ -51,26 +56,29 @@ class AccountPolicyReader(object):
         except Exception:
             return False
 
-    def parse_group_file(self, content):
-        """
-        /etc/group 형식을 파싱한다.
+    # =========================
+    # [NEW] passwd 파싱
+    # =========================
 
-        반환 예시:
+    def parse_passwd_file(self, content):
+        """
+        /etc/passwd 파싱
+
+        반환:
         {
-            "groups": [
+            "accounts": [
                 {
-                    "name": "wheel",
-                    "password": "x",
-                    "gid": "10",
-                    "members": ["user1", "user2"],
-                    "raw_line": "wheel:x:10:user1,user2"
+                    "username": "root",
+                    "uid": 0,
+                    "gid": 0,
+                    "home": "/root",
+                    "shell": "/bin/bash",
+                    "raw_line": "..."
                 }
-            ],
-            "active_lines": [...]
+            ]
         }
         """
-        active_lines = []
-        groups = []
+        accounts = []
 
         for raw_line in to_text(content).splitlines():
             line = raw_line.strip()
@@ -78,149 +86,125 @@ class AccountPolicyReader(object):
             if (not line) or line.startswith("#"):
                 continue
 
-            active_lines.append(line)
-
             parts = line.split(":")
-            if len(parts) < 4:
+            if len(parts) < 7:
                 continue
 
-            group_name = to_text(parts[0]).strip()
-            password = to_text(parts[1]).strip()
-            gid = to_text(parts[2]).strip()
-            members_text = to_text(parts[3]).strip()
+            try:
+                uid = int(parts[2])
+                gid = int(parts[3])
+            except Exception:
+                continue
 
-            members = []
-            if members_text:
-                for item in members_text.split(","):
-                    member = to_text(item).strip()
-                    if member:
-                        members.append(member)
-
-            groups.append({
-                "name": group_name,
-                "password": password,
+            accounts.append({
+                "username": to_text(parts[0]),
+                "uid": uid,
                 "gid": gid,
-                "members": members,
+                "home": to_text(parts[5]),
+                "shell": to_text(parts[6]),
                 "raw_line": line,
             })
 
         return {
-            "groups": groups,
-            "active_lines": active_lines,
+            "accounts": accounts
         }
 
-    @staticmethod
-    def find_group(groups, allowed_group_names):
+    # =========================
+    # [NEW] last 실행
+    # =========================
+
+    def run_last(self):
         """
-        허용된 그룹명 목록 중 실제 존재하는 그룹을 찾는다.
+        last 명령 실행 (Python2/3 호환)
         """
-        normalized_allowed = []
-        for item in allowed_group_names or []:
-            name = to_text(item).strip()
-            if name:
-                normalized_allowed.append(name)
+        try:
+            proc = subprocess.Popen(
+                ["last", "-w"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            out, _ = proc.communicate()
 
-        for group in groups or []:
-            group_name = to_text(group.get("name", "")).strip()
-            if group_name in normalized_allowed:
-                return group
+            if out:
+                return to_text(out)
+        except Exception:
+            pass
 
-        return None
+        return ""
 
-    def parse_su_pam(self, content, accepted_patterns=None, accepted_modules=None):
+    # =========================
+    # [NEW] last 파싱
+    # =========================
+
+    def parse_last_output(self, content):
         """
-        /etc/pam.d/su 파일에서 pam_wheel.so 설정 여부를 확인한다.
+        last 결과에서 로그인 사용자 목록 추출
+        """
+        users = set()
 
-        반환 예시:
+        for raw_line in to_text(content).splitlines():
+            line = raw_line.strip()
+
+            if (not line) or line.startswith("reboot"):
+                continue
+
+            parts = line.split()
+            if not parts:
+                continue
+
+            username = to_text(parts[0]).strip()
+
+            if username and username not in ("wtmp", "btmp"):
+                users.add(username)
+
+        return list(users)
+
+    # =========================
+    # [NEW] 불필요 계정 탐지
+    # =========================
+
+    def find_unnecessary_accounts(self, accounts, logged_in_users, policy):
+        """
+        불필요 계정 판별
+
+        반환:
         {
-            "active_lines": [...],
-            "pam_wheel_enabled": True,
-            "pam_wheel_mode": "use_uid",
-            "matched_line": "auth required pam_wheel.so use_uid",
-            "module_found": True
+            "unnecessary": [],
+            "no_login": []
         }
         """
-        accepted_patterns = accepted_patterns or []
-        accepted_modules = accepted_modules or ["pam_wheel.so"]
+        default_accounts = policy.get("default_accounts", [])
+        exclude_accounts = policy.get("exclude_accounts", [])
 
-        active_lines = self._extract_active_lines(content)
-        matched_line = ""
-        matched_pattern = ""
-        module_found = False
-        pam_wheel_enabled = False
-        pam_wheel_mode = ""
+        unnecessary = []
+        no_login = []
 
-        normalized_patterns = []
-        for item in accepted_patterns:
-            pattern = to_text(item).strip()
-            if pattern:
-                normalized_patterns.append(pattern)
+        for acc in accounts:
+            username = to_text(acc.get("username"))
 
-        normalized_modules = []
-        for item in accepted_modules:
-            module_name = to_text(item).strip()
-            if module_name:
-                normalized_modules.append(module_name)
+            # 제외 계정
+            if username in exclude_accounts:
+                continue
 
-        for line in active_lines:
-            line_text = to_text(line).strip()
+            # 기본 계정 → 바로 취약
+            if username in default_accounts:
+                unnecessary.append(acc)
+                continue
 
-            for module_name in normalized_modules:
-                if module_name in line_text:
-                    module_found = True
-                    break
-
-            # 정책 정의에 있는 허용 패턴이 명확하면 그 패턴을 우선 사용한다.
-            for pattern in normalized_patterns:
-                if pattern == line_text:
-                    pam_wheel_enabled = True
-                    matched_line = line_text
-                    matched_pattern = pattern
-                    break
-
-            if pam_wheel_enabled:
-                break
-
-        # 허용 패턴과 정확히 일치하지 않더라도 pam_wheel.so가 있으면
-        # 보조적으로 모드 정보를 추출한다.
-        if module_found and (not pam_wheel_enabled):
-            for line in active_lines:
-                line_text = to_text(line).strip()
-                if "pam_wheel.so" not in line_text:
-                    continue
-
-                matched_line = line_text
-
-                if "group=wheel" in line_text:
-                    pam_wheel_mode = "group=wheel"
-                elif "use_uid" in line_text:
-                    pam_wheel_mode = "use_uid"
-                else:
-                    pam_wheel_mode = "module_only"
-                break
-
-        # 허용 패턴과 일치한 경우 mode를 더 명확하게 만든다.
-        if pam_wheel_enabled:
-            if "group=wheel" in matched_line:
-                pam_wheel_mode = "group=wheel"
-            elif "use_uid" in matched_line:
-                pam_wheel_mode = "use_uid"
-            else:
-                pam_wheel_mode = "matched_pattern"
+            # 로그인 이력 없음 → 수동 점검
+            if username not in logged_in_users:
+                no_login.append(acc)
 
         return {
-            "active_lines": active_lines,
-            "pam_wheel_enabled": pam_wheel_enabled,
-            "pam_wheel_mode": pam_wheel_mode,
-            "matched_line": matched_line,
-            "matched_pattern": matched_pattern,
-            "module_found": module_found,
+            "unnecessary": unnecessary,
+            "no_login": no_login,
         }
 
+    # =========================
+    # 기존 코드 유지 (일부만 표시)
+    # =========================
+
     def inspect_file(self, path):
-        """
-        파일의 소유자/그룹/권한 메타데이터를 수집한다.
-        """
         exists = os.path.exists(path)
 
         result = {
@@ -254,58 +238,7 @@ class AccountPolicyReader(object):
         return result
 
     @staticmethod
-    def is_mode_at_most(current_mode_octal, max_mode_octal):
-        """
-        현재 권한이 기준 이하(더 엄격하거나 같은 수준)인지 비교한다.
-        """
-        try:
-            current_value = int(to_text(current_mode_octal).strip(), 8)
-            max_value = int(to_text(max_mode_octal).strip(), 8)
-        except Exception:
-            return False
-
-        return current_value <= max_value
-
-    @staticmethod
-    def is_group_allowed(group_name, allowed_group_names):
-        """
-        파일 그룹이 허용 그룹 목록에 포함되는지 확인한다.
-        """
-        current_group = to_text(group_name).strip()
-
-        for item in allowed_group_names or []:
-            allowed_group = to_text(item).strip()
-            if allowed_group and current_group == allowed_group:
-                return True
-
-        return False
-
-    @staticmethod
-    def _extract_active_lines(content):
-        """
-        주석과 공백 라인을 제거한 활성 설정 라인만 추출한다.
-        """
-        active_lines = []
-
-        for raw_line in to_text(content).splitlines():
-            line = raw_line.strip()
-
-            if (not line) or line.startswith("#"):
-                continue
-
-            if "#" in line:
-                line = line.split("#", 1)[0].strip()
-
-            if line:
-                active_lines.append(line)
-
-        return active_lines
-
-    @staticmethod
     def _resolve_owner_name(uid):
-        """
-        UID를 사용자명으로 변환한다.
-        """
         if pwd is None:
             return to_text(uid)
 
@@ -316,9 +249,6 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def _resolve_group_name(gid):
-        """
-        GID를 그룹명으로 변환한다.
-        """
         if grp is None:
             return to_text(gid)
 

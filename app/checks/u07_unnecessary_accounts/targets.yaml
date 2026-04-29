@@ -1,0 +1,8 @@
+files:
+  required:
+    - path: "/etc/passwd"
+      parser: "passwd"
+
+commands:
+  - name: "last"
+    cmd: "last"
