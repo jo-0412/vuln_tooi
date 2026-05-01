@@ -1,0 +1,91 @@
+files:
+  executables:
+    - path: "/usr/bin/crontab"
+      type: "binary"
+      parser: "file_metadata"
+      description: "crontab executable"
+
+    - path: "/usr/bin/at"
+      type: "binary"
+      parser: "file_metadata"
+      description: "at executable"
+
+  spool_dirs:
+    - path: "/var/spool/cron"
+      type: "directory"
+      parser: "file_metadata"
+      description: "cron spool directory"
+
+    - path: "/var/spool/cron/crontabs"
+      type: "directory"
+      parser: "file_metadata"
+      description: "cron user crontab spool directory"
+
+    - path: "/var/spool/cron/atjobs"
+      type: "directory"
+      parser: "file_metadata"
+      description: "at job spool directory under cron"
+
+    - path: "/var/spool/at"
+      type: "directory"
+      parser: "file_metadata"
+      description: "at spool directory"
+
+  control_files:
+    - path: "/etc/cron.allow"
+      type: "config"
+      parser: "file_metadata"
+      description: "cron allow control file"
+
+    - path: "/etc/cron.deny"
+      type: "config"
+      parser: "file_metadata"
+      description: "cron deny control file"
+
+    - path: "/etc/at.allow"
+      type: "config"
+      parser: "file_metadata"
+      description: "at allow control file"
+
+    - path: "/etc/at.deny"
+      type: "config"
+      parser: "file_metadata"
+      description: "at deny control file"
+
+commands:
+  - name: "ls_cron_at_executables"
+    command: "ls -l /usr/bin/crontab /usr/bin/at"
+    description: "Check crontab and at executable permissions"
+
+  - name: "ls_cron_at_spool_dirs"
+    command: "ls -ld /var/spool/cron /var/spool/cron/crontabs /var/spool/cron/atjobs /var/spool/at 2>/dev/null"
+    description: "Check cron and at spool directory permissions"
+
+  - name: "ls_cron_at_control_files"
+    command: "ls -l /etc/cron.allow /etc/cron.deny /etc/at.allow /etc/at.deny 2>/dev/null"
+    description: "Check cron and at allow or deny file permissions"
+
+evidence:
+  - key: "cron_at_executables"
+    source: "/usr/bin/crontab, /usr/bin/at"
+    description: "crontab and at executable permissions"
+
+  - key: "cron_at_spool_directories"
+    source: "/var/spool/cron, /var/spool/at"
+    description: "cron and at spool directory permissions"
+
+  - key: "cron_at_control_files"
+    source: "/etc/cron.allow, /etc/cron.deny, /etc/at.allow, /etc/at.deny"
+    description: "cron and at allow/deny control file permissions"
+
+  - key: "suid_sgid_status"
+    source: "/usr/bin/crontab, /usr/bin/at"
+    description: "SUID/SGID status of crontab and at executables"
+
+  - key: "permission_violations"
+    source: "cron/at related paths"
+    description: "Detected permission violations"
+
+  - key: "missing_optional_paths"
+    source: "cron/at related paths"
+    description: "Missing optional cron/at paths"

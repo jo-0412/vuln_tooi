@@ -1,0 +1,109 @@
+check_type: "composite"
+
+profile: "default_linux"
+
+rules:
+  executable_permission_rule:
+    description: >
+      crontab and at executables should not be world-writable and should
+      be controlled by privileged ownership.
+
+    target_type: "executables"
+
+    allowed_owner_names:
+      - "root"
+
+    allowed_group_names:
+      - "root"
+      - "crontab"
+      - "daemon"
+
+    deny_world_writable: true
+
+    check_suid_sgid: true
+
+    manual_if_suid_or_sgid_present: true
+
+    pass_condition: >
+      crontab and at executables are owned by root, are not world-writable,
+      and do not expose excessive permissions.
+
+    fail_condition: >
+      crontab or at executable is world-writable, not owned by root,
+      or otherwise exposes unsafe permissions.
+
+  spool_directory_permission_rule:
+    description: >
+      cron and at spool directories should be protected from ordinary user modification.
+
+    target_type: "spool_dirs"
+
+    allowed_owner_names:
+      - "root"
+      - "daemon"
+
+    allowed_group_names:
+      - "root"
+      - "crontab"
+      - "daemon"
+
+    deny_world_writable: true
+
+    max_mode_octal: "0750"
+
+    manual_if_missing: true
+
+    pass_condition: >
+      cron and at spool directories are owned by privileged accounts and
+      are not writable by all users.
+
+    fail_condition: >
+      cron or at spool directory is writable by all users or has excessive permissions.
+
+  control_file_permission_rule:
+    description: >
+      cron.allow, cron.deny, at.allow, and at.deny should be owned by root
+      and should have permissions of 640 or more restrictive.
+
+    target_type: "control_files"
+
+    allowed_owner_names:
+      - "root"
+
+    allowed_group_names:
+      - "root"
+
+    max_mode_octal: "0640"
+
+    deny_world_writable: true
+
+    manual_if_missing: false
+
+    pass_condition: >
+      Existing cron/at allow or deny control files are owned by root
+      and have permissions of 640 or more restrictive.
+
+    fail_condition: >
+      Existing cron/at allow or deny control files are not owned by root
+      or have permissions greater than 640.
+
+thresholds:
+  control_file_max_mode: "0640"
+  spool_dir_max_mode: "0750"
+  deny_world_writable: true
+
+final_decision:
+  pass:
+    - "cron and at related files are properly protected."
+
+  fail:
+    - "cron or at related files have excessive permissions."
+    - "Control file permission is greater than 640."
+    - "World-writable cron or at related path was detected."
+
+  manual:
+    - "Some optional cron or at paths are missing."
+    - "SUID or SGID status requires manual verification."
+
+  error:
+    - "cron or at related path metadata could not be collected."

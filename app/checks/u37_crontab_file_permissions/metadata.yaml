@@ -1,0 +1,32 @@
+code: "U-37"
+name: "Check crontab and at File Permissions"
+severity: "high"
+category: "file_and_directory_management"
+requires_root: "partial"
+
+summary: >
+  This item checks whether cron and at related files are protected
+  with proper ownership and permissions.
+
+description: >
+  This check reviews crontab and at executables, cron/at spool directories,
+  and cron/at allow or deny control files to verify that ordinary users
+  cannot misuse scheduled job mechanisms.
+
+purpose: >
+  To prevent ordinary users from abusing cron or at scheduled jobs
+  for unauthorized command execution, persistence, or system damage.
+
+platform: "linux"
+
+references:
+  - "/usr/bin/crontab"
+  - "/usr/bin/at"
+  - "/var/spool/cron"
+  - "/var/spool/cron/crontabs"
+  - "/var/spool/cron/atjobs"
+  - "/var/spool/at"
+  - "/etc/cron.allow"
+  - "/etc/cron.deny"
+  - "/etc/at.allow"
+  - "/etc/at.deny"

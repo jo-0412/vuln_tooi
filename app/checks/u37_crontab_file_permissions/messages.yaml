@@ -1,0 +1,48 @@
+title: "U-37 Check crontab and at File Permissions"
+
+pass:
+  summary: "cron and at related files are properly protected."
+  detail: >
+    crontab and at executables, spool directories, and control files
+    are protected with appropriate ownership and permissions.
+
+fail:
+  summary: "cron or at related files have excessive permissions."
+  detail: >
+    If ordinary users can freely create or modify scheduled jobs,
+    they may execute malicious commands, establish persistence,
+    or damage the system.
+
+manual:
+  summary: "cron and at file permissions require manual verification."
+  detail: >
+    Some cron or at related paths are missing, distribution-specific,
+    or contain SUID/SGID permissions that require manual review.
+
+error:
+  summary: "An error occurred while running the check."
+  detail: >
+    An error occurred while collecting cron or at related file metadata.
+
+remediation:
+  summary: "Restrict cron and at related files and directories to privileged users."
+  actions:
+    - "Restrict crontab and at executable permissions."
+    - "Ensure cron and at related files and directories are owned by root or another privileged account as appropriate."
+    - "Set cron/at allow and deny control files to 640 or more restrictive."
+    - "Remove unnecessary SUID or SGID permissions after verifying operational requirements."
+    - "Review scheduled job access policy and allow only authorized users."
+
+evidence_labels:
+  cron_at_executables: "crontab and at executable permissions"
+  cron_at_spool_directories: "cron and at spool directory permissions"
+  cron_at_control_files: "cron and at control file permissions"
+  suid_sgid_status: "SUID/SGID status"
+  permission_violations: "Permission violations"
+  missing_optional_paths: "Missing optional paths"
+
+notes:
+  - "Some Linux distributions may not install the at command by default."
+  - "cron spool paths differ by distribution."
+  - "SUID or SGID on crontab may be distribution-specific and should be reviewed before removal."
+  - "Existing allow/deny control files should be owned by root and restricted to 640 or more restrictive."
