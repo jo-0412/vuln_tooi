@@ -1,0 +1,18 @@
+code: "U-25"
+name: "Check World Writable Files"
+severity: "high"
+category: "file_system"
+requires_root: "required"
+
+summary: >
+  This item checks for files that are writable by all users.
+
+description: >
+  This check scans the entire filesystem to identify files that have
+  world writable permissions, which may allow unauthorized modification.
+
+purpose: >
+  To prevent unauthorized modification, deletion, or malicious code injection
+  through files that are writable by all users.
+
+platform: "linux"

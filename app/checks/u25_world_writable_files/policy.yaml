@@ -1,0 +1,48 @@
+check_type: "scan"
+
+profile: "default_linux"
+
+rules:
+  world_writable_rule:
+    description: >
+      Files should not be writable by all users unless explicitly required.
+
+    permission_check:
+      others_write: true
+
+    file_types:
+      include:
+        - "regular_file"
+
+    exclude_paths:
+      - "/proc"
+      - "/sys"
+      - "/dev"
+      - "/run"
+      - "/snap"
+      - "/var/lib/docker"
+
+    allowlist_files: []
+    allowlist_dirs: []
+
+    pass_condition: >
+      No world writable files exist outside of allowed paths.
+
+    fail_condition: >
+      One or more world writable files exist.
+
+final_decision:
+  pass:
+    - "No world writable files detected."
+
+  fail:
+    - "World writable files were detected."
+
+  manual:
+    - "Scan results require manual verification."
+
+  error:
+    - "Filesystem scan failed."
+
+thresholds:
+  max_allowed_world_writable: 0

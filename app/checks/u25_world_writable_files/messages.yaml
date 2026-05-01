@@ -1,0 +1,35 @@
+title: "U-25 Check World Writable Files"
+
+pass:
+  summary: "No world writable files detected."
+  detail: >
+    No files were found with write permissions for all users.
+
+fail:
+  summary: "World writable files were detected."
+  detail: >
+    Files with write permission for all users may allow unauthorized modification,
+    deletion, or insertion of malicious code.
+
+manual:
+  summary: "World writable files require manual verification."
+  detail: >
+    Some files may be intentionally world writable, but require verification.
+
+error:
+  summary: "An error occurred during filesystem scan."
+  detail: >
+    The scan could not be completed successfully.
+
+remediation:
+  summary: "Remove unnecessary world writable permissions."
+  actions:
+    - "Identify files with world writable permissions."
+    - "Remove write permission using: chmod o-w <file>"
+    - "Delete unnecessary files if not required."
+    - "Review application requirements before modifying permissions."
+
+evidence_labels:
+  world_writable_files: "World writable file list"
+  world_writable_count: "Total world writable file count"
+  excluded_paths: "Excluded scan paths"

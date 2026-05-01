@@ -1,0 +1,29 @@
+scan:
+  roots:
+    - "/"
+
+  exclude_paths:
+    - "/proc"
+    - "/sys"
+    - "/dev"
+    - "/run"
+    - "/snap"
+    - "/var/lib/docker"
+
+commands:
+  - name: "find_world_writable"
+    command: "find / -type f -perm -2 -exec ls -l {} \\;"
+    description: "Find world writable files"
+
+evidence:
+  - key: "world_writable_files"
+    source: "filesystem"
+    description: "List of world writable files"
+
+  - key: "world_writable_count"
+    source: "filesystem"
+    description: "Total count of world writable files"
+
+  - key: "excluded_paths"
+    source: "policy"
+    description: "Excluded paths from scan"
