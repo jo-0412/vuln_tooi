@@ -1,0 +1,50 @@
+title: "U-13 Use Secure Password Hashing Algorithm"
+
+pass:
+  summary: "Secure password hashing algorithms are being used."
+  detail: >
+    Password hashes and related configuration indicate that secure algorithms
+    such as SHA-256, SHA-512, yescrypt, or bcrypt are used.
+
+fail:
+  summary: "Weak password hashing algorithms were detected."
+  detail: >
+    Weak password hashing algorithms such as MD5 or DES may allow attackers
+    to crack leaked password hashes more easily and compromise user accounts.
+
+manual:
+  summary: "Password hashing algorithm requires manual verification."
+  detail: >
+    Some configuration or hash information could not be fully verified.
+    Manual review is required to determine the effective password hashing algorithm.
+
+error:
+  summary: "An error occurred while running the check."
+  detail: >
+    An error occurred while collecting password hash configuration or related files.
+
+remediation:
+  summary: "Configure the system to use SHA-256, SHA-512, yescrypt, or another secure password hashing algorithm."
+  actions:
+    - "Set ENCRYPT_METHOD in /etc/login.defs to SHA512 or another approved secure algorithm."
+    - "Configure pam_unix.so in the PAM password policy file to use a secure hash option such as sha512."
+    - "For Debian-based systems, review /etc/pam.d/common-password."
+    - "For Red Hat-based systems, review /etc/pam.d/system-auth."
+    - "After changing the policy, reset passwords for accounts using weak hashes so the new algorithm is actually applied."
+    - "Verify /etc/shadow hash prefixes after password reset."
+
+evidence_labels:
+  shadow_file_exists: "/etc/shadow exists"
+  shadow_hash_prefixes: "Password hash prefixes"
+  detected_hash_algorithms: "Detected password hash algorithms"
+  weak_hash_accounts: "Accounts using weak password hashes"
+  login_defs_encrypt_method: "ENCRYPT_METHOD value"
+  pam_unix_hash_options: "pam_unix.so hash options"
+  effective_password_hash_policy: "Effective password hash policy"
+
+notes:
+  - "$1$ usually indicates MD5."
+  - "$5$ usually indicates SHA-256."
+  - "$6$ usually indicates SHA-512."
+  - "$y$ may indicate yescrypt depending on the distribution."
+  - "Locked or disabled accounts may have password fields such as !, *, or !! and should not be treated as active weak hashes."

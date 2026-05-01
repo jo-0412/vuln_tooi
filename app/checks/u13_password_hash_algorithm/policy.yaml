@@ -1,0 +1,114 @@
+check_type: "composite"
+
+profile: "default_linux"
+
+rules:
+  shadow_hash_rule:
+    description: >
+      Password hashes in /etc/shadow should use secure algorithms
+      such as SHA-256, SHA-512, or stronger algorithms.
+
+    optional_files:
+      - "/etc/shadow"
+
+    hash_prefix_map:
+      "$1$": "md5"
+      "$2a$": "bcrypt"
+      "$2y$": "bcrypt"
+      "$5$": "sha256"
+      "$6$": "sha512"
+      "$y$": "yescrypt"
+
+    secure_algorithms:
+      - "sha256"
+      - "sha512"
+      - "yescrypt"
+      - "bcrypt"
+
+    weak_algorithms:
+      - "des"
+      - "md5"
+
+    ignored_password_markers:
+      - "!"
+      - "*"
+      - "!!"
+      - "x"
+      - ""
+
+    pass_condition: >
+      All active password hashes use SHA-256, SHA-512, yescrypt, bcrypt,
+      or another approved secure algorithm.
+
+    fail_condition: >
+      One or more active accounts use MD5, DES, or another weak password hash.
+
+  login_defs_rule:
+    description: >
+      /etc/login.defs should define ENCRYPT_METHOD as SHA256, SHA512,
+      yescrypt, or another secure algorithm.
+
+    optional_files:
+      - "/etc/login.defs"
+
+    accepted_encrypt_methods:
+      - "SHA256"
+      - "SHA512"
+      - "YESCRYPT"
+      - "BCRYPT"
+
+    weak_encrypt_methods:
+      - "MD5"
+      - "DES"
+
+    pass_condition: >
+      ENCRYPT_METHOD is configured to use a secure algorithm.
+
+    fail_condition: >
+      ENCRYPT_METHOD is configured to use MD5, DES, or another weak algorithm.
+
+  pam_hash_rule:
+    description: >
+      PAM password policy should configure pam_unix.so with a secure hash option.
+
+    optional_files:
+      - "/etc/pam.d/system-auth"
+      - "/etc/pam.d/common-password"
+
+    target_module: "pam_unix.so"
+
+    secure_options:
+      - "sha256"
+      - "sha512"
+      - "yescrypt"
+      - "bcrypt"
+
+    weak_options:
+      - "md5"
+      - "bigcrypt"
+      - "crypt"
+
+    pass_condition: >
+      pam_unix.so contains a secure hash option such as sha512 or yescrypt.
+
+    fail_condition: >
+      pam_unix.so contains md5, crypt, bigcrypt, or another weak hash option.
+
+final_decision:
+  pass:
+    - "Secure password hashing algorithm is configured and no weak active hashes are detected."
+
+  fail:
+    - "Weak password hashing algorithm is configured."
+    - "One or more active accounts use weak password hashes."
+
+  manual:
+    - "The effective password hashing algorithm cannot be fully determined."
+    - "/etc/shadow cannot be read due to insufficient permission."
+
+  error:
+    - "Required files or metadata could not be collected."
+
+thresholds:
+  require_secure_shadow_hashes: true
+  allow_manual_when_shadow_unreadable: true

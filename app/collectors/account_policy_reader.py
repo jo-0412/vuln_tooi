@@ -23,32 +23,31 @@ class AccountPolicyReader(object):
     """
     계정 및 권한 관련 점검용 수집기
 
-    U-06 기능:
+    U-06:
     - /etc/group 파싱
     - /etc/pam.d/su 내 pam_wheel 설정 파싱
     - su 실행 파일 메타데이터 확인
 
-    U-07 기능:
+    U-07:
     - /etc/passwd 파싱
     - last 명령 실행
     - 로그인 이력 사용자 추출
     - 불필요 계정 후보 탐지
+
+    U-13:
+    - /etc/shadow 해시 prefix 파싱
+    - /etc/login.defs ENCRYPT_METHOD 파싱
+    - PAM pam_unix.so 해시 알고리즘 옵션 파싱
     """
 
     def __init__(self):
         self.file_reader = FileReader()
 
     def read_file(self, path):
-        """
-        공통 FileReader를 이용해 파일을 읽는다.
-        """
         return self.file_reader.read(path)
 
     @staticmethod
     def file_exists(file_result):
-        """
-        FileReader 결과 객체에서 파일 존재 여부를 안전하게 확인한다.
-        """
         if file_result is None:
             return False
 
@@ -62,9 +61,6 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def parse_group_file(self, content):
-        """
-        /etc/group 형식을 파싱한다.
-        """
         active_lines = []
         groups = []
 
@@ -107,9 +103,6 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def find_group(groups, allowed_group_names):
-        """
-        허용된 그룹명 목록 중 실제 존재하는 그룹을 찾는다.
-        """
         normalized_allowed = []
 
         for item in allowed_group_names or []:
@@ -129,9 +122,6 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def parse_su_pam(self, content, accepted_patterns=None, accepted_modules=None):
-        """
-        /etc/pam.d/su 파일에서 pam_wheel.so 설정 여부를 확인한다.
-        """
         accepted_patterns = accepted_patterns or []
         accepted_modules = accepted_modules or ["pam_wheel.so"]
 
@@ -212,9 +202,6 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def inspect_file(self, path):
-        """
-        파일의 소유자/그룹/권한 메타데이터를 수집한다.
-        """
         exists = os.path.exists(path)
 
         result = {
@@ -249,9 +236,6 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def is_mode_at_most(current_mode_octal, max_mode_octal):
-        """
-        현재 권한이 기준 이하인지 비교한다.
-        """
         try:
             current_value = int(to_text(current_mode_octal).strip(), 8)
             max_value = int(to_text(max_mode_octal).strip(), 8)
@@ -262,9 +246,6 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def is_group_allowed(group_name, allowed_group_names):
-        """
-        파일 그룹이 허용 그룹 목록에 포함되는지 확인한다.
-        """
         current_group = to_text(group_name).strip()
 
         for item in allowed_group_names or []:
@@ -279,9 +260,6 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def parse_passwd_file(self, content):
-        """
-        /etc/passwd 형식을 파싱한다.
-        """
         active_lines = []
         accounts = []
 
@@ -336,9 +314,6 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def run_last(self):
-        """
-        last 명령을 실행한다.
-        """
         commands = [
             ["last", "-w"],
             ["last"],
@@ -364,9 +339,6 @@ class AccountPolicyReader(object):
         return ""
 
     def parse_last_output(self, content):
-        """
-        last 출력에서 로그인 이력이 있는 사용자명을 추출한다.
-        """
         users = []
         seen = set()
 
@@ -407,9 +379,6 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def find_unnecessary_accounts(self, accounts, logged_in_users, policy):
-        """
-        정책 기준으로 불필요 계정과 로그인 이력 없는 계정을 분류한다.
-        """
         default_accounts = policy.get("default_accounts", [])
         exclude_accounts = policy.get("exclude_accounts", [])
         ignore_no_login_accounts = policy.get("ignore_no_login_accounts", [])
@@ -458,14 +427,208 @@ class AccountPolicyReader(object):
         }
 
     # ============================================================
+    # U-13: /etc/shadow 해시 파싱
+    # ============================================================
+
+    def parse_shadow_hashes(self, content, hash_prefix_map=None, ignored_markers=None):
+        """
+        /etc/shadow에서 계정별 password hash prefix를 추출한다.
+
+        반환:
+        {
+          "accounts": [...],
+          "hash_prefixes": ["$6$"],
+          "algorithms": ["sha512"]
+        }
+        """
+        hash_prefix_map = hash_prefix_map or {}
+        ignored_markers = ignored_markers or ["!", "*", "!!", "x", ""]
+
+        accounts = []
+        prefixes = []
+        algorithms = []
+        seen_prefixes = set()
+        seen_algorithms = set()
+
+        for raw_line in to_text(content).splitlines():
+            line = raw_line.strip()
+
+            if (not line) or line.startswith("#"):
+                continue
+
+            parts = line.split(":")
+            if len(parts) < 2:
+                continue
+
+            username = to_text(parts[0]).strip()
+            password_hash = to_text(parts[1]).strip()
+
+            active = not self._is_ignored_password_field(password_hash, ignored_markers)
+            prefix = self._detect_hash_prefix(password_hash, hash_prefix_map)
+            algorithm = self._map_hash_algorithm(password_hash, prefix, hash_prefix_map)
+
+            item = {
+                "username": username,
+                "password_field_preview": self._mask_password_hash(password_hash),
+                "active": active,
+                "hash_prefix": prefix,
+                "algorithm": algorithm,
+                "raw_line_preview": username + ":" + self._mask_password_hash(password_hash),
+            }
+
+            accounts.append(item)
+
+            if active and prefix and prefix not in seen_prefixes:
+                seen_prefixes.add(prefix)
+                prefixes.append(prefix)
+
+            if active and algorithm and algorithm not in seen_algorithms:
+                seen_algorithms.add(algorithm)
+                algorithms.append(algorithm)
+
+        return {
+            "accounts": accounts,
+            "hash_prefixes": prefixes,
+            "algorithms": algorithms,
+        }
+
+    @staticmethod
+    def _is_ignored_password_field(password_hash, ignored_markers):
+        value = to_text(password_hash).strip()
+
+        if value in ignored_markers:
+            return True
+
+        # 잠긴 계정은 ! 또는 * 로 시작하는 경우가 많다.
+        if value.startswith("!") or value.startswith("*"):
+            return True
+
+        return False
+
+    @staticmethod
+    def _detect_hash_prefix(password_hash, hash_prefix_map):
+        value = to_text(password_hash).strip()
+
+        # 긴 prefix부터 먼저 비교한다.
+        prefixes = sorted(hash_prefix_map.keys(), key=lambda x: len(to_text(x)), reverse=True)
+
+        for prefix in prefixes:
+            prefix_text = to_text(prefix)
+            if value.startswith(prefix_text):
+                return prefix_text
+
+        if value and value.startswith("$"):
+            parts = value.split("$")
+            if len(parts) >= 2 and parts[1]:
+                return "$" + parts[1] + "$"
+
+        return ""
+
+    @staticmethod
+    def _map_hash_algorithm(password_hash, prefix, hash_prefix_map):
+        if prefix:
+            return to_text(hash_prefix_map.get(prefix, "unknown")).lower()
+
+        value = to_text(password_hash).strip()
+
+        if not value:
+            return ""
+
+        if value.startswith("!") or value.startswith("*"):
+            return "locked"
+
+        # $ prefix가 없는 전통 crypt/DES 형태로 간주
+        return "des"
+
+    @staticmethod
+    def _mask_password_hash(password_hash):
+        value = to_text(password_hash).strip()
+
+        if not value:
+            return ""
+
+        if value in ("!", "*", "!!", "x"):
+            return value
+
+        if len(value) <= 8:
+            return value[:2] + "******"
+
+        return value[:8] + "...(masked)"
+
+    # ============================================================
+    # U-13: /etc/login.defs ENCRYPT_METHOD 파싱
+    # ============================================================
+
+    def parse_login_defs_encrypt_method(self, content):
+        active_lines = self._extract_active_lines(content)
+        encrypt_method = ""
+        matched_line = ""
+
+        for line in active_lines:
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+
+            key = to_text(parts[0]).strip()
+            if key == "ENCRYPT_METHOD":
+                encrypt_method = to_text(parts[1]).strip().upper()
+                matched_line = line
+                break
+
+        return {
+            "encrypt_method": encrypt_method,
+            "matched_line": matched_line,
+            "active_lines": active_lines,
+        }
+
+    # ============================================================
+    # U-13: PAM pam_unix.so 해시 옵션 파싱
+    # ============================================================
+
+    def parse_pam_unix_hash_options(self, content, secure_options=None, weak_options=None):
+        secure_options = secure_options or []
+        weak_options = weak_options or []
+
+        active_lines = self._extract_active_lines(content)
+
+        matched_lines = []
+        detected_options = []
+        secure_detected = []
+        weak_detected = []
+
+        for line in active_lines:
+            line_text = to_text(line).strip()
+
+            if "pam_unix.so" not in line_text:
+                continue
+
+            matched_lines.append(line_text)
+            tokens = line_text.split()
+
+            for token in tokens:
+                token_lower = to_text(token).strip().lower()
+
+                if token_lower in secure_options:
+                    detected_options.append(token_lower)
+                    secure_detected.append(token_lower)
+
+                if token_lower in weak_options:
+                    detected_options.append(token_lower)
+                    weak_detected.append(token_lower)
+
+        return {
+            "matched_lines": self._dedupe_keep_order(matched_lines),
+            "detected_options": self._dedupe_keep_order(detected_options),
+            "secure_options": self._dedupe_keep_order(secure_detected),
+            "weak_options": self._dedupe_keep_order(weak_detected),
+        }
+
+    # ============================================================
     # 공통 유틸
     # ============================================================
 
     @staticmethod
     def _extract_active_lines(content):
-        """
-        주석과 공백 라인을 제거한 활성 설정 라인만 추출한다.
-        """
         active_lines = []
 
         for raw_line in to_text(content).splitlines():
@@ -483,10 +646,23 @@ class AccountPolicyReader(object):
         return active_lines
 
     @staticmethod
+    def _dedupe_keep_order(items):
+        seen = set()
+        result = []
+
+        for item in items or []:
+            normalized = to_text(item).strip()
+            if not normalized:
+                continue
+
+            if normalized not in seen:
+                seen.add(normalized)
+                result.append(normalized)
+
+        return result
+
+    @staticmethod
     def _resolve_owner_name(uid):
-        """
-        UID를 사용자명으로 변환한다.
-        """
         if pwd is None:
             return to_text(uid)
 
@@ -497,9 +673,6 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def _resolve_group_name(gid):
-        """
-        GID를 그룹명으로 변환한다.
-        """
         if grp is None:
             return to_text(gid)
 

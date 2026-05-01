@@ -1,0 +1,27 @@
+code: "U-13"
+name: "Use Secure Password Hashing Algorithm"
+severity: "high"
+category: "account_management"
+requires_root: "partial"
+
+summary: >
+  This item checks whether secure password hashing algorithms are used
+  to reduce the risk of password cracking if password hashes are leaked.
+
+description: >
+  This check reviews /etc/shadow, /etc/login.defs, and PAM password policy files
+  to verify that secure password hashing algorithms such as SHA-256 or SHA-512
+  are configured and used.
+
+purpose: >
+  To ensure that account passwords are protected with secure hashing algorithms,
+  reducing the risk of account compromise after password hash exposure.
+
+platform: "linux"
+
+references:
+  - "/etc/shadow"
+  - "/etc/passwd"
+  - "/etc/login.defs"
+  - "/etc/pam.d/system-auth"
+  - "/etc/pam.d/common-password"

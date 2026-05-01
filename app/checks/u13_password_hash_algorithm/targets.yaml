@@ -1,0 +1,72 @@
+files:
+  optional:
+    - path: "/etc/shadow"
+      type: "config"
+      parser: "shadow_hash"
+      description: "Password hash storage file"
+
+    - path: "/etc/passwd"
+      type: "config"
+      parser: "passwd"
+      description: "Account information file"
+
+    - path: "/etc/login.defs"
+      type: "config"
+      parser: "login_defs"
+      description: "Password encryption method configuration file"
+
+    - path: "/etc/pam.d/system-auth"
+      type: "config"
+      parser: "pam"
+      description: "Red Hat based PAM password policy file"
+
+    - path: "/etc/pam.d/common-password"
+      type: "config"
+      parser: "pam"
+      description: "Debian based PAM password policy file"
+
+commands:
+  - name: "shadow_hash_prefix"
+    command: "awk -F: '{print $1\":\"$2}' /etc/shadow | head"
+    description: "Check password hash prefixes in /etc/shadow"
+
+  - name: "login_defs_encrypt_method"
+    command: "grep ENCRYPT_METHOD /etc/login.defs"
+    description: "Check ENCRYPT_METHOD in /etc/login.defs"
+
+  - name: "pam_system_auth_hash"
+    command: "grep pam_unix.so /etc/pam.d/system-auth"
+    description: "Check pam_unix.so password hash option in system-auth"
+
+  - name: "pam_common_password_hash"
+    command: "grep pam_unix.so /etc/pam.d/common-password"
+    description: "Check pam_unix.so password hash option in common-password"
+
+evidence:
+  - key: "shadow_file_exists"
+    source: "/etc/shadow"
+    description: "Whether /etc/shadow exists"
+
+  - key: "shadow_hash_prefixes"
+    source: "/etc/shadow"
+    description: "Detected password hash prefixes"
+
+  - key: "detected_hash_algorithms"
+    source: "/etc/shadow"
+    description: "Detected password hashing algorithms"
+
+  - key: "weak_hash_accounts"
+    source: "/etc/shadow"
+    description: "Accounts using weak password hashes"
+
+  - key: "login_defs_encrypt_method"
+    source: "/etc/login.defs"
+    description: "ENCRYPT_METHOD value"
+
+  - key: "pam_unix_hash_options"
+    source: "PAM password files"
+    description: "pam_unix.so hash algorithm options"
+
+  - key: "effective_password_hash_policy"
+    source: "/etc/shadow, /etc/login.defs, PAM"
+    description: "Detected effective password hash policy"
