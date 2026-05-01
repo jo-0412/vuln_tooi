@@ -1,0 +1,107 @@
+files:
+  optional:
+    - path: "/etc/inetd.conf"
+      type: "config"
+      parser: "inetd"
+      description: "inetd service configuration file"
+
+    - path: "/etc/xinetd.d/ftp"
+      type: "config"
+      parser: "xinetd"
+      description: "xinetd configuration for FTP"
+
+    - path: "/etc/vsftpd.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "vsftpd configuration file"
+
+    - path: "/etc/vsftpd/vsftpd.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "alternative vsftpd configuration file"
+
+    - path: "/etc/proftpd/proftpd.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "proftpd configuration file"
+
+    - path: "/etc/pure-ftpd/pure-ftpd.conf"
+      type: "config"
+      parser: "plain_text"
+      description: "pure-ftpd configuration file"
+
+services:
+  - name: "ftp"
+    aliases:
+      - "ftp.service"
+      - "ftp.socket"
+      - "ftpd.service"
+      - "ftpd.socket"
+    description: "Generic FTP service or socket"
+
+  - name: "vsftpd"
+    aliases:
+      - "vsftpd.service"
+      - "vsftpd.socket"
+    description: "vsftpd service or socket"
+
+  - name: "proftpd"
+    aliases:
+      - "proftpd.service"
+      - "proftpd.socket"
+      - "proftpd@.service"
+    description: "proftpd service or socket"
+
+  - name: "pure-ftpd"
+    aliases:
+      - "pure-ftpd.service"
+      - "pure-ftpd.socket"
+      - "pure-ftpd-mysql.service"
+      - "pure-ftpd-postgresql.service"
+    description: "pure-ftpd service or socket"
+
+commands:
+  - name: "grep_inetd_ftp"
+    command: "grep ftp /etc/inetd.conf"
+    description: "Check FTP entries in inetd.conf"
+
+  - name: "grep_xinetd_ftp"
+    command: "grep -i disable /etc/xinetd.d/ftp 2>/dev/null"
+    description: "Check whether FTP is disabled in xinetd"
+
+  - name: "systemd_ftp_service"
+    command: "systemctl list-units --type=service | grep -E 'vsftpd|proftpd|ftpd|ftp'"
+    description: "Check FTP service status in systemd"
+
+  - name: "systemd_ftp_socket"
+    command: "systemctl list-units --type=socket | grep -E 'vsftpd|proftpd|ftpd|ftp'"
+    description: "Check FTP socket status in systemd"
+
+evidence:
+  - key: "inetd_ftp_entries"
+    source: "/etc/inetd.conf"
+    description: "FTP entries in inetd configuration"
+
+  - key: "xinetd_ftp_entries"
+    source: "/etc/xinetd.d/ftp"
+    description: "FTP xinetd configuration and disable value"
+
+  - key: "systemd_ftp_status"
+    source: "systemd"
+    description: "FTP service or socket status from systemd"
+
+  - key: "ftp_config_files"
+    source: "FTP daemon configuration files"
+    description: "Detected FTP daemon configuration files"
+
+  - key: "active_ftp_services"
+    source: "inetd, xinetd, systemd"
+    description: "Detected active FTP service entries"
+
+  - key: "missing_optional_paths"
+    source: "FTP related paths"
+    description: "Missing optional FTP configuration paths"
+
+  - key: "secure_replacement_note"
+    source: "manual"
+    description: "Whether SFTP or FTPS is used as a secure replacement"

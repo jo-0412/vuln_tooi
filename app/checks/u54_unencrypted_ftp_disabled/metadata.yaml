@@ -1,0 +1,28 @@
+code: "U-54"
+name: "Disable Unencrypted FTP Service"
+severity: "high"
+category: "service_management"
+requires_root: "partial"
+
+summary: >
+  This item checks whether unencrypted FTP services are disabled.
+
+description: >
+  This check reviews inetd, xinetd, systemd service status,
+  and common FTP daemon configuration paths to verify that
+  plaintext FTP services are not enabled or running.
+
+purpose: >
+  To prevent account credentials and transferred files from being exposed
+  through unencrypted FTP communication.
+
+platform: "linux"
+
+references:
+  - "/etc/inetd.conf"
+  - "/etc/xinetd.d/ftp"
+  - "/etc/vsftpd.conf"
+  - "/etc/vsftpd/vsftpd.conf"
+  - "/etc/proftpd/proftpd.conf"
+  - "/etc/pure-ftpd/pure-ftpd.conf"
+  - "systemd FTP service or socket"

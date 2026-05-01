@@ -1,0 +1,50 @@
+title: "U-54 Disable Unencrypted FTP Service"
+
+pass:
+  summary: "Unencrypted FTP service is disabled."
+  detail: >
+    Plain FTP is not active in inetd, xinetd, or systemd configuration.
+
+fail:
+  summary: "Unencrypted FTP service is enabled or running."
+  detail: >
+    Plain FTP transmits account credentials and file data without encryption,
+    making them vulnerable to network sniffing and credential theft.
+
+manual:
+  summary: "FTP service status requires manual verification."
+  detail: >
+    Some FTP-related configuration files or service states could not be fully verified,
+    or SFTP/FTPS replacement usage requires manual confirmation.
+
+error:
+  summary: "An error occurred while running the check."
+  detail: >
+    An error occurred while collecting FTP configuration or service status.
+
+remediation:
+  summary: "Disable unencrypted FTP and use SFTP or FTPS for secure file transfer."
+  actions:
+    - "Stop and disable FTP service or socket units in systemd."
+    - "Set disable = yes in /etc/xinetd.d/ftp if xinetd is used."
+    - "Comment out FTP entries in /etc/inetd.conf if inetd is used."
+    - "Restart inetd or xinetd after modifying configuration."
+    - "Use SFTP or FTPS instead of plain FTP."
+    - "Remove FTP server packages if they are not required."
+    - "If FTP is required, configure encryption and verify that plaintext login is not allowed."
+
+evidence_labels:
+  inetd_ftp_entries: "FTP entries in inetd.conf"
+  xinetd_ftp_entries: "FTP entries in xinetd configuration"
+  systemd_ftp_status: "FTP service status from systemd"
+  ftp_config_files: "FTP daemon configuration files"
+  active_ftp_services: "Active FTP services"
+  missing_optional_paths: "Missing optional paths"
+  secure_replacement_note: "SFTP/FTPS replacement verification"
+
+notes:
+  - "Plain FTP is an unencrypted file transfer protocol."
+  - "Modern Linux systems may not install FTP server packages by default."
+  - "Missing FTP configuration files are generally acceptable."
+  - "SFTP uses SSH and should not be treated as plain FTP."
+  - "FTPS can be acceptable if encryption is enforced, but this may require manual verification."
