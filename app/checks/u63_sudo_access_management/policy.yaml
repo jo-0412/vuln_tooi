@@ -1,0 +1,85 @@
+check_type: "file_permission"
+
+profile: "default_linux"
+
+rules:
+  sudoers_file_permission_rule:
+    description: >
+      /etc/sudoers should be owned by root and have permissions of 640
+      or more restrictive.
+
+    target_file: "/etc/sudoers"
+
+    required_owner_names:
+      - "root"
+
+    allowed_group_names:
+      - "root"
+
+    max_mode_octal: "0640"
+
+    deny_world_writable: true
+
+    pass_condition: >
+      /etc/sudoers exists, is owned by root, and has permissions of 640
+      or more restrictive.
+
+    fail_condition: >
+      /etc/sudoers is not owned by root or has permissions greater than 640.
+
+  sudoers_include_rule:
+    description: >
+      sudoers include structure should be collected as supporting evidence.
+
+    target_file: "/etc/sudoers"
+
+    include_patterns:
+      - "#includedir"
+      - "@includedir"
+      - "#include"
+      - "@include"
+
+    manual_if_includedir_present: false
+
+    pass_condition: >
+      Include structure is collected for review.
+
+    manual_condition: >
+      Include structure exists and detailed sudoers.d file validation is required.
+
+  sudoers_d_directory_rule:
+    description: >
+      /etc/sudoers.d directory metadata should be collected if present.
+
+    target_directory: "/etc/sudoers.d"
+
+    required_owner_names:
+      - "root"
+
+    max_mode_octal: "0750"
+
+    manual_if_present: true
+
+    pass_condition: >
+      /etc/sudoers.d is absent or protected with restrictive permissions.
+
+    manual_condition: >
+      /etc/sudoers.d exists and included files may require additional review.
+
+thresholds:
+  sudoers_max_mode: "0640"
+  sudoers_required_owner: "root"
+
+final_decision:
+  pass:
+    - "/etc/sudoers is owned by root and has permissions of 640 or more restrictive."
+
+  fail:
+    - "/etc/sudoers is not owned by root."
+    - "/etc/sudoers permissions are greater than 640."
+
+  manual:
+    - "sudoers include structure or sudoers.d files require additional verification."
+
+  error:
+    - "/etc/sudoers could not be inspected."

@@ -44,6 +44,11 @@ class AccountPolicyReader(object):
     - /etc/login.defs 내 UMASK 설정 파싱
     - 현재 세션 umask 수집
     - 기준값 022 이상인지 권한 마스크 관점에서 판정
+
+    U-63:
+    - /etc/sudoers include 구조 파싱
+    - /etc/sudoers.d 파일 목록 수집
+    - sudoers 관련 경로 메타데이터 확인
     """
 
     def __init__(self):
@@ -219,12 +224,12 @@ class AccountPolicyReader(object):
         }
 
     # ============================================================
-    # U-06: 파일 메타데이터 확인
+    # 공통: 파일 메타데이터 확인
     # ============================================================
 
     def inspect_file(self, path):
         """
-        파일의 소유자/그룹/권한 메타데이터를 수집한다.
+        파일/디렉터리의 소유자/그룹/권한 메타데이터를 수집한다.
         """
         exists = os.path.exists(path)
 
@@ -238,6 +243,7 @@ class AccountPolicyReader(object):
             "mode_int": None,
             "mode_octal": "",
             "is_regular_file": False,
+            "is_directory": False,
         }
 
         if not exists:
@@ -255,6 +261,7 @@ class AccountPolicyReader(object):
         result["mode_int"] = st_obj.st_mode & 0o7777
         result["mode_octal"] = "%04o" % (st_obj.st_mode & 0o7777)
         result["is_regular_file"] = stat.S_ISREG(st_obj.st_mode)
+        result["is_directory"] = stat.S_ISDIR(st_obj.st_mode)
 
         return result
 
@@ -667,11 +674,6 @@ class AccountPolicyReader(object):
     def parse_profile_umask_lines(self, content):
         """
         /etc/profile에서 umask 관련 활성 라인을 추출하고 값을 파싱한다.
-
-        차별점:
-        - 단순 grep 결과가 아니라 실제 값처럼 보이는 토큰만 추출한다.
-        - 'umask 022', 'umask=022' 형태를 모두 일부 처리한다.
-        - 조건문, echo, 설명 문자열에 들어간 umask는 값이 없으면 evidence만 남긴다.
         """
         active_lines = self._extract_active_lines(content)
         items = []
@@ -740,10 +742,6 @@ class AccountPolicyReader(object):
     def run_current_umask(self):
         """
         현재 프로세스 기준 umask를 직접 바꾸지 않고 shell을 통해 현재 세션 umask를 수집한다.
-
-        주의:
-        - Python에서 os.umask()를 쓰면 실제 프로세스 umask가 변경될 수 있으므로 사용하지 않는다.
-        - sh -c umask 방식으로 안전하게 조회한다.
         """
         commands = [
             ["sh", "-c", "umask"],
@@ -818,12 +816,6 @@ class AccountPolicyReader(object):
     def is_umask_secure(self, value, required_value="022"):
         """
         UMASK가 기준값보다 같거나 더 엄격한지 판단한다.
-
-        중요한 차이점:
-        - 단순 숫자 비교를 하지 않는다.
-        - UMASK는 '막는 권한 비트'이므로, 기준값 022가 막는 비트를
-          현재 값도 모두 포함하면 안전하다고 본다.
-        - 예: 022 안전, 027 안전, 077 안전, 002 취약, 000 취약
         """
         if not self.is_valid_umask_value(value):
             return False
@@ -860,6 +852,122 @@ class AccountPolicyReader(object):
         return ""
 
     # ============================================================
+    # U-63: sudoers include 구조 파싱
+    # ============================================================
+
+    def parse_sudoers_include_lines(self, content):
+        """
+        /etc/sudoers에서 include 또는 includedir 지시문을 수집한다.
+
+        기능:
+        - sudoers에서는 '#includedir'처럼 #으로 시작해도 주석이 아니라 지시문일 수 있다.
+        - 일반 설정 파일처럼 '#' 라인을 모두 제거하면 안 된다.
+        - @include, @includedir, #include, #includedir 모두 수집한다.
+
+        반환:
+        {
+            "include_lines": [...],
+            "include_dirs": [...],
+            "include_files": [...]
+        }
+        """
+        include_lines = []
+        include_dirs = []
+        include_files = []
+
+        for raw_line in to_text(content).splitlines():
+            line = raw_line.strip()
+
+            if not line:
+                continue
+
+            lowered = line.lower()
+
+            if not (
+                lowered.startswith("#includedir") or
+                lowered.startswith("@includedir") or
+                lowered.startswith("#include") or
+                lowered.startswith("@include")
+            ):
+                continue
+
+            include_lines.append(line)
+
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+
+            directive = to_text(parts[0]).lower()
+            target = to_text(parts[1]).strip()
+
+            if "includedir" in directive:
+                include_dirs.append(target)
+            else:
+                include_files.append(target)
+
+        return {
+            "include_lines": include_lines,
+            "include_dirs": self._dedupe_keep_order(include_dirs),
+            "include_files": self._dedupe_keep_order(include_files),
+        }
+
+    def list_sudoers_d_files(self, directory="/etc/sudoers.d"):
+        """
+        /etc/sudoers.d 하위 파일 목록과 메타데이터를 수집한다.
+
+        기능:
+        - 디렉터리가 없으면 exists=False 반환
+        - 파일마다 owner, group, mode를 inspect_file()로 수집
+        - README처럼 일부 배포판에서 제공되는 설명 파일도 evidence로 남긴다.
+
+        차별점:
+        - sudoers.d 파일 내용까지 깊게 판정하지 않고 1차 구현에서는 권한 증적 중심으로 수집한다.
+        - 상세 sudo 정책 분석은 이후 확장할 수 있다.
+        """
+        directory = to_text(directory).strip() or "/etc/sudoers.d"
+
+        result = {
+            "directory": directory,
+            "exists": os.path.isdir(directory),
+            "files": [],
+            "errors": [],
+        }
+
+        if not result["exists"]:
+            return result
+
+        try:
+            names = os.listdir(directory)
+        except Exception as exc:
+            result["errors"].append(to_text(exc))
+            return result
+
+        for name in sorted(names):
+            if name in (".", ".."):
+                continue
+
+            path = os.path.join(directory, name)
+
+            try:
+                metadata = self.inspect_file(path)
+                result["files"].append({
+                    "path": path,
+                    "name": name,
+                    "exists": metadata.get("exists"),
+                    "owner_name": metadata.get("owner_name"),
+                    "group_name": metadata.get("group_name"),
+                    "mode_octal": metadata.get("mode_octal"),
+                    "is_regular_file": metadata.get("is_regular_file"),
+                    "is_directory": metadata.get("is_directory"),
+                })
+            except Exception as exc:
+                result["errors"].append(
+                    "{0}: {1}".format(path, to_text(exc))
+                )
+
+        return result
+
+    # ============================================================
     # 공통 유틸
     # ============================================================
 
@@ -867,6 +975,10 @@ class AccountPolicyReader(object):
     def _extract_active_lines(content):
         """
         주석과 공백 라인을 제거한 활성 설정 라인만 추출한다.
+
+        주의:
+        - sudoers의 #includedir은 주석처럼 보이지만 실제 지시문일 수 있으므로
+          sudoers include 파싱에는 이 함수를 쓰지 않는다.
         """
         active_lines = []
 

@@ -1,0 +1,54 @@
+files:
+  required:
+    - path: "/etc/sudoers"
+      type: "config"
+      parser: "file_metadata"
+      description: "Main sudoers policy file"
+
+  optional:
+    - path: "/etc/sudoers.d"
+      type: "directory"
+      parser: "file_metadata"
+      description: "sudoers include directory"
+
+commands:
+  - name: "ls_sudoers"
+    command: "ls -l /etc/sudoers"
+    description: "Check ownership and permission of /etc/sudoers"
+
+  - name: "ls_sudoers_d"
+    command: "ls -ld /etc/sudoers.d 2>/dev/null"
+    description: "Check ownership and permission of /etc/sudoers.d"
+
+  - name: "grep_sudoers_include"
+    command: "grep -E '^#includedir|^@includedir|^#include|^@include' /etc/sudoers"
+    description: "Check sudoers include structure"
+
+evidence:
+  - key: "sudoers_file_exists"
+    source: "/etc/sudoers"
+    description: "Whether /etc/sudoers exists"
+
+  - key: "sudoers_owner"
+    source: "/etc/sudoers"
+    description: "Owner of /etc/sudoers"
+
+  - key: "sudoers_group"
+    source: "/etc/sudoers"
+    description: "Group owner of /etc/sudoers"
+
+  - key: "sudoers_mode"
+    source: "/etc/sudoers"
+    description: "Permission mode of /etc/sudoers"
+
+  - key: "sudoers_permission_status"
+    source: "/etc/sudoers"
+    description: "Whether /etc/sudoers ownership and permission meet the policy"
+
+  - key: "sudoers_include_structure"
+    source: "/etc/sudoers"
+    description: "sudoers include or includedir configuration"
+
+  - key: "sudoers_d_directory"
+    source: "/etc/sudoers.d"
+    description: "Metadata of /etc/sudoers.d if present"

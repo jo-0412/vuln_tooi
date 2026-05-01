@@ -1,0 +1,23 @@
+code: "U-63"
+name: "Manage sudoers File Access"
+severity: "high"
+category: "privilege_management"
+requires_root: "partial"
+
+summary: >
+  This item checks whether the /etc/sudoers file is protected with proper
+  ownership and permissions.
+
+description: >
+  This check verifies that /etc/sudoers is owned by root and has restrictive
+  permissions so that unauthorized users cannot modify sudo policy.
+
+purpose: >
+  To prevent unauthorized privilege escalation by protecting the sudoers policy file
+  from unauthorized modification.
+
+platform: "linux"
+
+references:
+  - "/etc/sudoers"
+  - "/etc/sudoers.d"

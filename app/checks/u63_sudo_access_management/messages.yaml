@@ -1,0 +1,48 @@
+title: "U-63 Manage sudoers File Access"
+
+pass:
+  summary: "/etc/sudoers is properly protected."
+  detail: >
+    The sudoers policy file is owned by root and has restrictive permissions,
+    reducing the risk of unauthorized sudo policy modification.
+
+fail:
+  summary: "/etc/sudoers has unsafe ownership or permissions."
+  detail: >
+    If /etc/sudoers is writable or modifiable by unauthorized users,
+    attackers may change sudo policy and obtain root privileges.
+
+manual:
+  summary: "sudoers access control requires manual verification."
+  detail: >
+    The main sudoers file may be properly protected, but include structures
+    or sudoers.d configurations may require additional review.
+
+error:
+  summary: "An error occurred while running the check."
+  detail: >
+    An error occurred while collecting /etc/sudoers metadata.
+
+remediation:
+  summary: "Restrict /etc/sudoers ownership and permissions."
+  actions:
+    - "Set the owner of /etc/sudoers to root."
+    - "Set the group owner of /etc/sudoers to root if required by policy."
+    - "Set /etc/sudoers permission to 640 or more restrictive."
+    - "Use visudo before modifying sudoers policy to prevent syntax errors."
+    - "Review /etc/sudoers.d files if sudoers include structure is used."
+
+evidence_labels:
+  sudoers_file_exists: "/etc/sudoers exists"
+  sudoers_owner: "/etc/sudoers owner"
+  sudoers_group: "/etc/sudoers group"
+  sudoers_mode: "/etc/sudoers permission mode"
+  sudoers_permission_status: "/etc/sudoers permission status"
+  sudoers_include_structure: "sudoers include structure"
+  sudoers_d_directory: "/etc/sudoers.d directory metadata"
+
+notes:
+  - "The sudoers file controls administrative privilege delegation."
+  - "Use visudo when editing sudoers policy."
+  - "Some distributions use /etc/sudoers.d for additional sudo policy files."
+  - "If sudoers.d is used, included files should also be reviewed."
