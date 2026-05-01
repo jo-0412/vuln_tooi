@@ -1,0 +1,23 @@
+code: "U-30"
+name: "Manage UMASK Setting"
+severity: "medium"
+category: "file_and_directory_management"
+requires_root: "partial"
+
+summary: >
+  This item checks whether the system-wide UMASK value is configured securely
+  to prevent newly created files and directories from being overly exposed.
+
+description: >
+  This check reviews /etc/profile and /etc/login.defs to verify that
+  the UMASK value is configured to 022 or more restrictive.
+
+purpose: >
+  To ensure that newly created files and directories are not created
+  with excessive permissions that may expose data or allow unauthorized access.
+
+platform: "linux"
+
+references:
+  - "/etc/profile"
+  - "/etc/login.defs"

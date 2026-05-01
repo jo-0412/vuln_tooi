@@ -1,0 +1,50 @@
+title: "U-30 Manage UMASK Setting"
+
+pass:
+  summary: "A secure UMASK value is configured."
+  detail: >
+    The system-wide UMASK setting is configured to 022 or more restrictive,
+    reducing the risk of excessive permissions on newly created files and directories.
+
+fail:
+  summary: "A weak UMASK value was detected."
+  detail: >
+    If UMASK is too weak, newly created files and directories may be assigned
+    excessive permissions, increasing the risk of information exposure
+    or unauthorized access.
+
+manual:
+  summary: "UMASK configuration requires manual verification."
+  detail: >
+    UMASK settings are missing, duplicated, or conflicting.
+    Manual verification is required to determine the effective system-wide UMASK.
+
+error:
+  summary: "An error occurred while running the check."
+  detail: >
+    An error occurred while collecting UMASK configuration files or related settings.
+
+remediation:
+  summary: "Configure UMASK to 022 or more restrictive in system-wide configuration files."
+  actions:
+    - "Set umask 022 in /etc/profile."
+    - "Set UMASK 022 in /etc/login.defs."
+    - "If multiple UMASK settings exist, review the final effective value."
+    - "Use a more restrictive value such as 027 or 077 if required by organizational policy."
+    - "After modifying configuration files, start a new login session and verify the applied UMASK."
+
+evidence_labels:
+  profile_file_exists: "/etc/profile exists"
+  login_defs_file_exists: "/etc/login.defs exists"
+  profile_umask_lines: "UMASK lines in /etc/profile"
+  login_defs_umask_value: "UMASK value in /etc/login.defs"
+  detected_umask_values: "Detected UMASK values"
+  duplicate_umask_settings: "Duplicate UMASK settings"
+  current_session_umask: "Current session UMASK"
+  effective_umask_policy: "Effective UMASK policy"
+
+notes:
+  - "A UMASK value of 022 is generally considered acceptable."
+  - "More restrictive values such as 027 or 077 may also be acceptable."
+  - "A value such as 000 or 002 may create overly permissive files or directories depending on policy."
+  - "If multiple UMASK values exist, the final effective value may depend on shell initialization order."

@@ -1,0 +1,74 @@
+check_type: "composite"
+
+profile: "default_linux"
+
+rules:
+  profile_umask_rule:
+    description: >
+      /etc/profile should configure a secure umask value such as 022 or more restrictive.
+
+    optional_files:
+      - "/etc/profile"
+
+    accepted_patterns:
+      - "umask"
+
+    pass_condition: >
+      /etc/profile contains a UMASK setting of 022 or more restrictive.
+
+    fail_condition: >
+      /etc/profile contains a UMASK setting weaker than 022.
+
+  login_defs_umask_rule:
+    description: >
+      /etc/login.defs should configure UMASK as 022 or more restrictive.
+
+    optional_files:
+      - "/etc/login.defs"
+
+    target_key: "UMASK"
+
+    pass_condition: >
+      /etc/login.defs contains UMASK 022 or more restrictive.
+
+    fail_condition: >
+      /etc/login.defs contains UMASK weaker than 022.
+
+  session_umask_rule:
+    description: >
+      The current session UMASK can be collected as supporting evidence.
+
+    command:
+      - "umask"
+
+    pass_condition: >
+      The current session UMASK is 022 or more restrictive.
+
+    fail_condition: >
+      The current session UMASK is weaker than 022.
+
+thresholds:
+  required_umask: "022"
+
+  # 1차 구현 기준:
+  # 숫자 비교만으로 처리하지 말고, 권한 관점에서
+  # group/other 권한이 기준보다 더 많이 열리는지 비교하는 것을 권장한다.
+  compare_as_permission_mask: true
+
+  # 하나 이상의 전역 설정 파일에서 안전한 UMASK가 확인되면 PASS 후보로 본다.
+  require_any_secure_global_umask: true
+
+final_decision:
+  pass:
+    - "A secure UMASK value is configured in system-wide configuration."
+
+  fail:
+    - "A weak UMASK value is configured."
+    - "UMASK value is weaker than 022."
+
+  manual:
+    - "UMASK setting is missing or multiple conflicting UMASK values require review."
+    - "The effective UMASK could not be fully determined."
+
+  error:
+    - "UMASK configuration files could not be collected."

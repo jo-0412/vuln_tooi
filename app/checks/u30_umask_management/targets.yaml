@@ -1,0 +1,57 @@
+files:
+  optional:
+    - path: "/etc/profile"
+      type: "config"
+      parser: "shell_profile"
+      description: "System-wide shell profile configuration file"
+
+    - path: "/etc/login.defs"
+      type: "config"
+      parser: "login_defs"
+      description: "Login policy configuration file"
+
+commands:
+  - name: "grep_profile_umask"
+    command: "grep -i umask /etc/profile"
+    description: "Check UMASK settings in /etc/profile"
+
+  - name: "grep_login_defs_umask"
+    command: "grep -i '^UMASK' /etc/login.defs"
+    description: "Check UMASK setting in /etc/login.defs"
+
+  - name: "current_session_umask"
+    command: "umask"
+    description: "Check current session UMASK value"
+
+evidence:
+  - key: "profile_file_exists"
+    source: "/etc/profile"
+    description: "Whether /etc/profile exists"
+
+  - key: "login_defs_file_exists"
+    source: "/etc/login.defs"
+    description: "Whether /etc/login.defs exists"
+
+  - key: "profile_umask_lines"
+    source: "/etc/profile"
+    description: "UMASK-related lines in /etc/profile"
+
+  - key: "login_defs_umask_value"
+    source: "/etc/login.defs"
+    description: "UMASK value configured in /etc/login.defs"
+
+  - key: "detected_umask_values"
+    source: "/etc/profile, /etc/login.defs"
+    description: "Detected UMASK values"
+
+  - key: "duplicate_umask_settings"
+    source: "/etc/profile, /etc/login.defs"
+    description: "Whether duplicate UMASK settings exist"
+
+  - key: "current_session_umask"
+    source: "umask"
+    description: "Current session UMASK value"
+
+  - key: "effective_umask_policy"
+    source: "/etc/profile, /etc/login.defs, current session"
+    description: "Detected effective UMASK policy"

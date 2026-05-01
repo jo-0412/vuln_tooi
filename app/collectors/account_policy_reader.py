@@ -38,16 +38,28 @@ class AccountPolicyReader(object):
     - /etc/shadow 해시 prefix 파싱
     - /etc/login.defs ENCRYPT_METHOD 파싱
     - PAM pam_unix.so 해시 알고리즘 옵션 파싱
+
+    U-30:
+    - /etc/profile 내 umask 설정 라인 파싱
+    - /etc/login.defs 내 UMASK 설정 파싱
+    - 현재 세션 umask 수집
+    - 기준값 022 이상인지 권한 마스크 관점에서 판정
     """
 
     def __init__(self):
         self.file_reader = FileReader()
 
     def read_file(self, path):
+        """
+        공통 FileReader를 이용해 파일을 읽는다.
+        """
         return self.file_reader.read(path)
 
     @staticmethod
     def file_exists(file_result):
+        """
+        FileReader 결과 객체에서 파일 존재 여부를 안전하게 확인한다.
+        """
         if file_result is None:
             return False
 
@@ -61,6 +73,9 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def parse_group_file(self, content):
+        """
+        /etc/group 형식을 파싱한다.
+        """
         active_lines = []
         groups = []
 
@@ -103,6 +118,9 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def find_group(groups, allowed_group_names):
+        """
+        허용된 그룹명 목록 중 실제 존재하는 그룹을 찾는다.
+        """
         normalized_allowed = []
 
         for item in allowed_group_names or []:
@@ -122,6 +140,9 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def parse_su_pam(self, content, accepted_patterns=None, accepted_modules=None):
+        """
+        /etc/pam.d/su 파일에서 pam_wheel.so 설정 여부를 확인한다.
+        """
         accepted_patterns = accepted_patterns or []
         accepted_modules = accepted_modules or ["pam_wheel.so"]
 
@@ -202,6 +223,9 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def inspect_file(self, path):
+        """
+        파일의 소유자/그룹/권한 메타데이터를 수집한다.
+        """
         exists = os.path.exists(path)
 
         result = {
@@ -236,6 +260,9 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def is_mode_at_most(current_mode_octal, max_mode_octal):
+        """
+        현재 권한이 기준 이하인지 비교한다.
+        """
         try:
             current_value = int(to_text(current_mode_octal).strip(), 8)
             max_value = int(to_text(max_mode_octal).strip(), 8)
@@ -246,6 +273,9 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def is_group_allowed(group_name, allowed_group_names):
+        """
+        파일 그룹이 허용 그룹 목록에 포함되는지 확인한다.
+        """
         current_group = to_text(group_name).strip()
 
         for item in allowed_group_names or []:
@@ -260,6 +290,9 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def parse_passwd_file(self, content):
+        """
+        /etc/passwd 형식을 파싱한다.
+        """
         active_lines = []
         accounts = []
 
@@ -314,6 +347,9 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def run_last(self):
+        """
+        last 명령을 실행한다.
+        """
         commands = [
             ["last", "-w"],
             ["last"],
@@ -339,6 +375,9 @@ class AccountPolicyReader(object):
         return ""
 
     def parse_last_output(self, content):
+        """
+        last 출력에서 로그인 이력이 있는 사용자명을 추출한다.
+        """
         users = []
         seen = set()
 
@@ -379,6 +418,9 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def find_unnecessary_accounts(self, accounts, logged_in_users, policy):
+        """
+        정책 기준으로 불필요 계정과 로그인 이력 없는 계정을 분류한다.
+        """
         default_accounts = policy.get("default_accounts", [])
         exclude_accounts = policy.get("exclude_accounts", [])
         ignore_no_login_accounts = policy.get("ignore_no_login_accounts", [])
@@ -433,13 +475,6 @@ class AccountPolicyReader(object):
     def parse_shadow_hashes(self, content, hash_prefix_map=None, ignored_markers=None):
         """
         /etc/shadow에서 계정별 password hash prefix를 추출한다.
-
-        반환:
-        {
-          "accounts": [...],
-          "hash_prefixes": ["$6$"],
-          "algorithms": ["sha512"]
-        }
         """
         hash_prefix_map = hash_prefix_map or {}
         ignored_markers = ignored_markers or ["!", "*", "!!", "x", ""]
@@ -499,7 +534,6 @@ class AccountPolicyReader(object):
         if value in ignored_markers:
             return True
 
-        # 잠긴 계정은 ! 또는 * 로 시작하는 경우가 많다.
         if value.startswith("!") or value.startswith("*"):
             return True
 
@@ -508,8 +542,6 @@ class AccountPolicyReader(object):
     @staticmethod
     def _detect_hash_prefix(password_hash, hash_prefix_map):
         value = to_text(password_hash).strip()
-
-        # 긴 prefix부터 먼저 비교한다.
         prefixes = sorted(hash_prefix_map.keys(), key=lambda x: len(to_text(x)), reverse=True)
 
         for prefix in prefixes:
@@ -537,7 +569,6 @@ class AccountPolicyReader(object):
         if value.startswith("!") or value.startswith("*"):
             return "locked"
 
-        # $ prefix가 없는 전통 crypt/DES 형태로 간주
         return "des"
 
     @staticmethod
@@ -560,6 +591,9 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def parse_login_defs_encrypt_method(self, content):
+        """
+        /etc/login.defs에서 ENCRYPT_METHOD 값을 파싱한다.
+        """
         active_lines = self._extract_active_lines(content)
         encrypt_method = ""
         matched_line = ""
@@ -586,6 +620,9 @@ class AccountPolicyReader(object):
     # ============================================================
 
     def parse_pam_unix_hash_options(self, content, secure_options=None, weak_options=None):
+        """
+        PAM 파일에서 pam_unix.so 라인의 해시 알고리즘 옵션을 파싱한다.
+        """
         secure_options = secure_options or []
         weak_options = weak_options or []
 
@@ -624,11 +661,213 @@ class AccountPolicyReader(object):
         }
 
     # ============================================================
+    # U-30: /etc/profile UMASK 파싱
+    # ============================================================
+
+    def parse_profile_umask_lines(self, content):
+        """
+        /etc/profile에서 umask 관련 활성 라인을 추출하고 값을 파싱한다.
+
+        차별점:
+        - 단순 grep 결과가 아니라 실제 값처럼 보이는 토큰만 추출한다.
+        - 'umask 022', 'umask=022' 형태를 모두 일부 처리한다.
+        - 조건문, echo, 설명 문자열에 들어간 umask는 값이 없으면 evidence만 남긴다.
+        """
+        active_lines = self._extract_active_lines(content)
+        items = []
+
+        for line in active_lines:
+            lower_line = to_text(line).lower()
+
+            if "umask" not in lower_line:
+                continue
+
+            value = self._extract_umask_value_from_line(line)
+
+            items.append({
+                "source": "/etc/profile",
+                "line": line,
+                "value": value,
+                "valid": self.is_valid_umask_value(value),
+            })
+
+        return {
+            "items": items,
+            "lines": [item.get("line") for item in items],
+            "values": self._dedupe_keep_order([item.get("value") for item in items if item.get("value")]),
+        }
+
+    # ============================================================
+    # U-30: /etc/login.defs UMASK 파싱
+    # ============================================================
+
+    def parse_login_defs_umask(self, content):
+        """
+        /etc/login.defs에서 UMASK 값을 파싱한다.
+        """
+        active_lines = self._extract_active_lines(content)
+        items = []
+
+        for line in active_lines:
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+
+            key = to_text(parts[0]).strip().upper()
+
+            if key != "UMASK":
+                continue
+
+            value = to_text(parts[1]).strip()
+
+            items.append({
+                "source": "/etc/login.defs",
+                "line": line,
+                "value": value,
+                "valid": self.is_valid_umask_value(value),
+            })
+
+        return {
+            "items": items,
+            "lines": [item.get("line") for item in items],
+            "values": self._dedupe_keep_order([item.get("value") for item in items if item.get("value")]),
+        }
+
+    # ============================================================
+    # U-30: 현재 세션 umask 수집
+    # ============================================================
+
+    def run_current_umask(self):
+        """
+        현재 프로세스 기준 umask를 직접 바꾸지 않고 shell을 통해 현재 세션 umask를 수집한다.
+
+        주의:
+        - Python에서 os.umask()를 쓰면 실제 프로세스 umask가 변경될 수 있으므로 사용하지 않는다.
+        - sh -c umask 방식으로 안전하게 조회한다.
+        """
+        commands = [
+            ["sh", "-c", "umask"],
+            ["bash", "-lc", "umask"],
+        ]
+
+        for command in commands:
+            try:
+                proc = subprocess.Popen(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+                stdout, stderr = proc.communicate()
+
+                if stdout:
+                    value = to_text(stdout).strip().splitlines()[0].strip()
+                    return {
+                        "value": value,
+                        "status": "ok" if proc.returncode == 0 else "error",
+                        "returncode": proc.returncode,
+                        "stderr": to_text(stderr),
+                        "command": " ".join(command),
+                    }
+            except Exception:
+                continue
+
+        return {
+            "value": "",
+            "status": "error",
+            "returncode": 999,
+            "stderr": "failed to run umask command",
+            "command": "sh -c umask",
+        }
+
+    # ============================================================
+    # U-30: UMASK 값 검증 및 비교
+    # ============================================================
+
+    @staticmethod
+    def is_valid_umask_value(value):
+        """
+        UMASK 값이 3자리 또는 4자리 8진수 형태인지 확인한다.
+        """
+        text = to_text(value).strip()
+
+        if not text:
+            return False
+
+        if len(text) not in (3, 4):
+            return False
+
+        for ch in text:
+            if ch not in "01234567":
+                return False
+
+        return True
+
+    @staticmethod
+    def normalize_umask_value(value):
+        """
+        UMASK 값을 3자리 형태로 정규화한다.
+        예: 0022 -> 022
+        """
+        text = to_text(value).strip()
+
+        if len(text) == 4 and text.startswith("0"):
+            text = text[1:]
+
+        return text
+
+    def is_umask_secure(self, value, required_value="022"):
+        """
+        UMASK가 기준값보다 같거나 더 엄격한지 판단한다.
+
+        중요한 차이점:
+        - 단순 숫자 비교를 하지 않는다.
+        - UMASK는 '막는 권한 비트'이므로, 기준값 022가 막는 비트를
+          현재 값도 모두 포함하면 안전하다고 본다.
+        - 예: 022 안전, 027 안전, 077 안전, 002 취약, 000 취약
+        """
+        if not self.is_valid_umask_value(value):
+            return False
+
+        if not self.is_valid_umask_value(required_value):
+            required_value = "022"
+
+        try:
+            current = int(self.normalize_umask_value(value), 8)
+            required = int(self.normalize_umask_value(required_value), 8)
+        except Exception:
+            return False
+
+        return (current & required) == required
+
+    @staticmethod
+    def _extract_umask_value_from_line(line):
+        """
+        umask 설정 라인에서 값만 추출한다.
+        """
+        text = to_text(line).strip()
+
+        if "#" in text:
+            text = text.split("#", 1)[0].strip()
+
+        text = text.replace("=", " ")
+        tokens = text.split()
+
+        for idx, token in enumerate(tokens):
+            if token.lower() == "umask" and idx + 1 < len(tokens):
+                candidate = tokens[idx + 1].strip().strip(";")
+                return candidate
+
+        return ""
+
+    # ============================================================
     # 공통 유틸
     # ============================================================
 
     @staticmethod
     def _extract_active_lines(content):
+        """
+        주석과 공백 라인을 제거한 활성 설정 라인만 추출한다.
+        """
         active_lines = []
 
         for raw_line in to_text(content).splitlines():
@@ -647,6 +886,9 @@ class AccountPolicyReader(object):
 
     @staticmethod
     def _dedupe_keep_order(items):
+        """
+        순서를 유지하면서 중복을 제거한다.
+        """
         seen = set()
         result = []
 
