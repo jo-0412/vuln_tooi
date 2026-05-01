@@ -1,0 +1,67 @@
+files:
+  optional:
+    - path: "/etc/inetd.conf"
+      type: "config"
+      parser: "inetd"
+      description: "inetd service configuration file"
+
+    - path: "/etc/xinetd.d/telnet"
+      type: "config"
+      parser: "xinetd"
+      description: "xinetd configuration for Telnet"
+
+services:
+  - name: "telnet"
+    aliases:
+      - "telnet.service"
+      - "telnet.socket"
+    description: "Telnet service or socket"
+
+  - name: "telnetd"
+    aliases:
+      - "telnetd.service"
+      - "in.telnetd.service"
+      - "in.telnetd.socket"
+    description: "Telnet daemon service or socket"
+
+commands:
+  - name: "grep_inetd_telnet"
+    command: "grep telnet /etc/inetd.conf"
+    description: "Check Telnet entries in inetd.conf"
+
+  - name: "grep_xinetd_telnet"
+    command: "grep -i disable /etc/xinetd.d/telnet 2>/dev/null"
+    description: "Check whether Telnet is disabled in xinetd"
+
+  - name: "systemd_telnet_service"
+    command: "systemctl list-units --type=service | grep telnet"
+    description: "Check Telnet service status in systemd"
+
+  - name: "systemd_telnet_socket"
+    command: "systemctl list-units --type=socket | grep telnet"
+    description: "Check Telnet socket status in systemd"
+
+evidence:
+  - key: "inetd_telnet_entries"
+    source: "/etc/inetd.conf"
+    description: "Telnet entries in inetd configuration"
+
+  - key: "xinetd_telnet_entries"
+    source: "/etc/xinetd.d/telnet"
+    description: "Telnet xinetd configuration and disable value"
+
+  - key: "systemd_telnet_status"
+    source: "systemd"
+    description: "Telnet service or socket status from systemd"
+
+  - key: "active_telnet_services"
+    source: "inetd, xinetd, systemd"
+    description: "Detected active Telnet service entries"
+
+  - key: "missing_optional_paths"
+    source: "Telnet related paths"
+    description: "Missing optional Telnet configuration paths"
+
+  - key: "ssh_replacement_note"
+    source: "manual"
+    description: "Whether SSH is used as a secure replacement"

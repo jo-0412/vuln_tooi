@@ -1,0 +1,47 @@
+title: "U-52 Disable Telnet Service"
+
+pass:
+  summary: "Telnet service is disabled."
+  detail: >
+    Telnet is not active in inetd, xinetd, or systemd configuration.
+
+fail:
+  summary: "Telnet service is enabled or running."
+  detail: >
+    Telnet transmits usernames and passwords in plaintext,
+    making it highly vulnerable to network sniffing and credential theft.
+
+manual:
+  summary: "Telnet service status requires manual verification."
+  detail: >
+    Some Telnet-related configuration files or service states could not be fully verified,
+    or SSH replacement usage requires manual confirmation.
+
+error:
+  summary: "An error occurred while running the check."
+  detail: >
+    An error occurred while collecting Telnet configuration or service status.
+
+remediation:
+  summary: "Disable Telnet and use SSH for secure remote access."
+  actions:
+    - "Stop and disable Telnet service or socket units in systemd."
+    - "Set disable = yes in /etc/xinetd.d/telnet if xinetd is used."
+    - "Comment out Telnet entries in /etc/inetd.conf if inetd is used."
+    - "Restart inetd or xinetd after modifying configuration."
+    - "Use SSH instead of Telnet for remote administration."
+    - "Remove Telnet packages if they are not required."
+
+evidence_labels:
+  inetd_telnet_entries: "Telnet entries in inetd.conf"
+  xinetd_telnet_entries: "Telnet entries in xinetd configuration"
+  systemd_telnet_status: "Telnet service status from systemd"
+  active_telnet_services: "Active Telnet services"
+  missing_optional_paths: "Missing optional paths"
+  ssh_replacement_note: "SSH replacement verification"
+
+notes:
+  - "Telnet is a plaintext remote access protocol."
+  - "Modern Linux systems may not install Telnet server packages by default."
+  - "Missing Telnet configuration files are generally acceptable."
+  - "SSH should be used as a secure alternative to Telnet."

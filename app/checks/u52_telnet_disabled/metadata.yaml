@@ -1,0 +1,23 @@
+code: "U-52"
+name: "Disable Telnet Service"
+severity: "high"
+category: "service_management"
+requires_root: "partial"
+
+summary: >
+  This item checks whether the Telnet service is disabled.
+
+description: >
+  This check reviews inetd, xinetd, and systemd service configuration
+  to verify that Telnet is not enabled or running.
+
+purpose: >
+  To prevent account credentials and sensitive information from being exposed
+  through plaintext Telnet communication.
+
+platform: "linux"
+
+references:
+  - "/etc/inetd.conf"
+  - "/etc/xinetd.d/telnet"
+  - "systemd telnet service or socket"
