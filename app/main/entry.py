@@ -26,6 +26,7 @@ from app.main.u23_runner import U23Runner
 from app.main.u25_runner import U25Runner
 from app.main.u28_runner import U28Runner
 from app.main.u30_runner import U30Runner
+from app.main.u36_runner import U36Runner
 from app.main.u37_runner import U37Runner
 from app.main.u64_runner import U64Runner
 from app.main.u66_runner import U66Runner
@@ -125,6 +126,9 @@ def build_runners(check_code):
     if normalized == "U-30":
         return [U30Runner()]
     
+    if normalized == "U-36":
+        return [U36Runner()]
+    
     if normalized == "U-37":
         return [U37Runner()]
 
@@ -149,6 +153,7 @@ def build_runners(check_code):
             U25Runner(),
             U28Runner(),
             U30Runner(),
+            U36Runner(),
             U37Runner(),
             U64Runner(),
             U66Runner(),

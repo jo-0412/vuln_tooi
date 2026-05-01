@@ -1,0 +1,25 @@
+code: "U-36"
+name: "Disable r Services"
+severity: "high"
+category: "service_management"
+requires_root: "partial"
+
+summary: >
+  This item checks whether legacy r services such as rsh, rlogin, and rexec
+  are disabled.
+
+description: >
+  This check reviews inetd, xinetd, systemd service status, and trust files
+  such as /etc/hosts.equiv and .rhosts to verify that r services are not enabled.
+
+purpose: >
+  To prevent unauthorized remote access and privilege abuse caused by weak
+  trust-based legacy r services.
+
+platform: "linux"
+
+references:
+  - "/etc/inetd.conf"
+  - "/etc/xinetd.d/*"
+  - "/etc/hosts.equiv"
+  - "$HOME/.rhosts"

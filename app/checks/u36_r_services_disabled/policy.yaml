@@ -1,0 +1,110 @@
+check_type: "composite"
+
+profile: "default_linux"
+
+rules:
+  inetd_rule:
+    description: >
+      r services should not be enabled in /etc/inetd.conf.
+
+    target_file: "/etc/inetd.conf"
+
+    service_names:
+      - "rsh"
+      - "rlogin"
+      - "rexec"
+      - "shell"
+      - "login"
+      - "exec"
+
+    pass_condition: >
+      r service entries are absent or commented out in /etc/inetd.conf.
+
+    fail_condition: >
+      r service entries are active in /etc/inetd.conf.
+
+  xinetd_rule:
+    description: >
+      r services should be disabled in xinetd configuration files.
+
+    target_dir: "/etc/xinetd.d"
+
+    service_files:
+      - "/etc/xinetd.d/rsh"
+      - "/etc/xinetd.d/rlogin"
+      - "/etc/xinetd.d/rexec"
+
+    service_names:
+      - "rsh"
+      - "rlogin"
+      - "rexec"
+
+    disabled_value: "yes"
+
+    fail_values:
+      - "no"
+
+    pass_condition: >
+      xinetd r service configuration files are missing or have disable = yes.
+
+    fail_condition: >
+      xinetd r service configuration has disable = no.
+
+  systemd_rule:
+    description: >
+      r services should not be active in systemd.
+
+    service_names:
+      - "rsh"
+      - "rlogin"
+      - "rexec"
+
+    accepted_inactive_states:
+      - "inactive"
+      - "disabled"
+      - "not-found"
+      - "unknown"
+
+    fail_active_states:
+      - "active"
+      - "enabled"
+
+    pass_condition: >
+      r services are inactive, disabled, or not found.
+
+    fail_condition: >
+      r services are active or enabled.
+
+  trust_file_rule:
+    description: >
+      r service trust files such as /etc/hosts.equiv and .rhosts should not exist.
+
+    trust_files:
+      - "/etc/hosts.equiv"
+      - "/root/.rhosts"
+      - "/home/*/.rhosts"
+
+    pass_condition: >
+      r service trust files are not present.
+
+    fail_condition: >
+      /etc/hosts.equiv or .rhosts files are present.
+
+thresholds:
+  fail_if_any_active_r_service: true
+  fail_if_any_trust_file_exists: true
+
+final_decision:
+  pass:
+    - "r services are disabled and no r service trust files are present."
+
+  fail:
+    - "r service is enabled in inetd, xinetd, or systemd."
+    - "r service trust files such as /etc/hosts.equiv or .rhosts were detected."
+
+  manual:
+    - "Some service states or configuration files could not be verified."
+    - "Distribution-specific service configuration requires manual review."
+
+  error:
+    - "r service configuration or status collection failed."

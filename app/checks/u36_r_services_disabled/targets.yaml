@@ -1,0 +1,108 @@
+files:
+  optional:
+    - path: "/etc/inetd.conf"
+      type: "config"
+      parser: "inetd"
+      description: "inetd service configuration file"
+
+    - path: "/etc/xinetd.d/rsh"
+      type: "config"
+      parser: "xinetd"
+      description: "xinetd configuration for rsh"
+
+    - path: "/etc/xinetd.d/rlogin"
+      type: "config"
+      parser: "xinetd"
+      description: "xinetd configuration for rlogin"
+
+    - path: "/etc/xinetd.d/rexec"
+      type: "config"
+      parser: "xinetd"
+      description: "xinetd configuration for rexec"
+
+    - path: "/etc/hosts.equiv"
+      type: "trust_file"
+      parser: "plain_text"
+      description: "System-wide r service trust file"
+
+services:
+  - name: "rsh"
+    aliases:
+      - "rsh.service"
+      - "rsh.socket"
+      - "shell.socket"
+    description: "rsh service or socket"
+
+  - name: "rlogin"
+    aliases:
+      - "rlogin.service"
+      - "rlogin.socket"
+      - "login.socket"
+    description: "rlogin service or socket"
+
+  - name: "rexec"
+    aliases:
+      - "rexec.service"
+      - "rexec.socket"
+      - "exec.socket"
+    description: "rexec service or socket"
+
+search:
+  trust_files:
+    roots:
+      - "/home"
+      - "/root"
+    names:
+      - ".rhosts"
+      - "hosts.equiv"
+    description: "User-level r service trust files"
+
+commands:
+  - name: "grep_inetd_r_services"
+    command: "grep -Ei 'rsh|rlogin|rexec' /etc/inetd.conf"
+    description: "Check r service entries in inetd.conf"
+
+  - name: "grep_xinetd_r_services"
+    command: "grep -RinE 'disable|rsh|rlogin|rexec' /etc/xinetd.d/"
+    description: "Check r service entries in xinetd configuration"
+
+  - name: "systemd_r_services"
+    command: "systemctl list-units --type=service | grep -E 'rlogin|rsh|rexec'"
+    description: "Check r service status in systemd"
+
+  - name: "find_r_trust_files"
+    command: "find /home -name .rhosts -o -name hosts.equiv 2>/dev/null"
+    description: "Find user-level r service trust files"
+
+evidence:
+  - key: "inetd_r_service_entries"
+    source: "/etc/inetd.conf"
+    description: "r service entries in inetd configuration"
+
+  - key: "xinetd_r_service_entries"
+    source: "/etc/xinetd.d/*"
+    description: "r service entries in xinetd configuration"
+
+  - key: "systemd_r_service_status"
+    source: "systemd"
+    description: "r service status from systemd"
+
+  - key: "hosts_equiv_exists"
+    source: "/etc/hosts.equiv"
+    description: "Whether /etc/hosts.equiv exists"
+
+  - key: "rhosts_files"
+    source: "/home/*/.rhosts, /root/.rhosts"
+    description: "Detected .rhosts trust files"
+
+  - key: "active_r_services"
+    source: "inetd, xinetd, systemd"
+    description: "Detected active r services"
+
+  - key: "trust_files_detected"
+    source: "/etc/hosts.equiv, .rhosts"
+    description: "Detected r service trust files"
+
+  - key: "missing_optional_paths"
+    source: "r service related paths"
+    description: "Missing optional configuration paths"

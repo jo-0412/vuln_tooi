@@ -1,0 +1,51 @@
+title: "U-36 Disable r Services"
+
+pass:
+  summary: "r services are disabled."
+  detail: >
+    rsh, rlogin, and rexec services are not active, and no r service trust files
+    were detected.
+
+fail:
+  summary: "r services or trust files were detected."
+  detail: >
+    Legacy r services use weak trust-based authentication and may allow account
+    compromise or unauthorized remote access.
+
+manual:
+  summary: "r service status requires manual verification."
+  detail: >
+    Some r service configuration files or service states could not be fully verified,
+    or the system uses distribution-specific configuration.
+
+error:
+  summary: "An error occurred while running the check."
+  detail: >
+    An error occurred while collecting r service configuration, service status,
+    or trust file information.
+
+remediation:
+  summary: "Disable r services and remove unnecessary r service trust files."
+  actions:
+    - "Comment out r service entries in /etc/inetd.conf."
+    - "Set disable = yes in rsh, rlogin, and rexec xinetd configuration files."
+    - "Stop and disable r service units or sockets in systemd."
+    - "Remove /etc/hosts.equiv if it is not required."
+    - "Remove unnecessary .rhosts files from user home directories."
+    - "Use secure alternatives such as SSH instead of rsh, rlogin, or rexec."
+
+evidence_labels:
+  inetd_r_service_entries: "r service entries in inetd.conf"
+  xinetd_r_service_entries: "r service entries in xinetd configuration"
+  systemd_r_service_status: "r service status from systemd"
+  hosts_equiv_exists: "/etc/hosts.equiv exists"
+  rhosts_files: ".rhosts trust files"
+  active_r_services: "Active r services"
+  trust_files_detected: "Detected r service trust files"
+  missing_optional_paths: "Missing optional paths"
+
+notes:
+  - "rsh, rlogin, and rexec are legacy trust-based remote access services."
+  - "Some systems may not use inetd or xinetd."
+  - "Missing r service configuration files are generally acceptable."
+  - "/etc/hosts.equiv and .rhosts should be reviewed carefully if present."
