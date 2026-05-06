@@ -42,8 +42,8 @@ class AccountPolicyReader(object):
     U-30:
     - /etc/profile 내 umask 설정 라인 파싱
     - /etc/login.defs 내 UMASK 설정 파싱
-    - 현재 세션 umask 수집
-    - 기준값 022 이상인지 권한 마스크 관점에서 판정
+    - current 세션 umask 수집
+    - criterion값 022 이상인지 권한 마스크 관점에서 판정
 
     U-63:
     - /etc/sudoers include 구조 파싱
@@ -269,7 +269,7 @@ class AccountPolicyReader(object):
     @staticmethod
     def is_mode_at_most(current_mode_octal, max_mode_octal):
         """
-        현재 권한이 기준 이하인지 비교한다.
+        current 권한이 criterion 이하인지 비교한다.
         """
         try:
             current_value = int(to_text(current_mode_octal).strip(), 8)
@@ -427,7 +427,7 @@ class AccountPolicyReader(object):
 
     def find_unnecessary_accounts(self, accounts, logged_in_users, policy):
         """
-        정책 기준으로 불필요 계정과 로그인 이력 없는 계정을 분류한다.
+        정책 criterion으로 불필요 계정과 로그인 이력 없는 계정을 분류한다.
         """
         default_accounts = policy.get("default_accounts", [])
         exclude_accounts = policy.get("exclude_accounts", [])
@@ -742,7 +742,7 @@ class AccountPolicyReader(object):
 
     def run_current_umask(self):
         """
-        현재 프로세스 기준 umask를 직접 바꾸지 않고 shell을 통해 현재 세션 umask를 수집한다.
+        current 프로세스 criterion umask를 직접 바꾸지 않고 shell을 통해 current 세션 umask를 수집한다.
         """
         commands = [
             ["sh", "-c", "umask"],
@@ -816,7 +816,7 @@ class AccountPolicyReader(object):
 
     def is_umask_secure(self, value, required_value="022"):
         """
-        UMASK가 기준값보다 같거나 더 엄격한지 판단한다.
+        UMASK가 criterion값보다 같거나 더 엄격한지 판단한다.
         """
         if not self.is_valid_umask_value(value):
             return False

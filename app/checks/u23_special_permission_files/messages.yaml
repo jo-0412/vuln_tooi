@@ -1,49 +1,49 @@
-title: "U-23 SUID, SGID, Sticky bit 설정 파일 점검"
+title: "U-23 Check Files with SUID, SGID, and Sticky Bit Settings"
 
 pass:
-  summary: "불필요한 SUID/SGID 특수권한 파일이 존재하지 않습니다."
+  summary: "No unnecessary SUID/SGID special-permission files exist."
   detail: >
-    허용되지 않은 특수권한 파일이 확인되지 않아
-    일반 사용자에 의한 권한 상승 위험이 낮습니다.
+    No unauthorized special-permission files were found,
+    so the risk of privilege escalation by ordinary users is low.
 
 fail:
-  summary: "불필요한 SUID/SGID 특수권한 파일이 존재합니다."
+  summary: "Unnecessary SUID/SGID special-permission files exist."
   detail: >
-    불필요한 SUID/SGID 파일이 존재해 일반 사용자가 해당 파일을 통해
-    root 권한 상승을 시도할 수 있습니다.
+    Unnecessary SUID/SGID files exist, so ordinary users may use those files
+    to attempt root privilege escalation.
 
 manual:
-  summary: "추가 검토가 필요한 특수권한 항목이 존재합니다."
+  summary: "Special-permission items requiring additional review exist."
   detail: >
-    특수권한이 설정된 일부 파일 또는 디렉터리에 대해
-    업무 필요성 및 운영 목적을 추가 확인해야 합니다.
+    For some files or directories with special permissions,
+    business need and operational purpose require additional verification.
 
 error:
-  summary: "점검 실행 중 오류가 발생했습니다."
+  summary: "An error occurred while running the check."
   detail: >
-    전체 파일시스템 검색 또는 특수권한 항목 수집 중 오류가 발생했습니다.
+    An error occurred while scanning the full filesystem or collecting special-permission items.
 
 remediation:
-  summary: "불필요한 특수권한은 제거하고 필요한 경우 최소 권한만 부여해야 합니다."
+  summary: "Remove unnecessary special permissions and grant only the minimum required permissions when needed."
   actions:
-    - "허용 목록 외 SUID/SGID 파일의 업무 필요성을 검토합니다."
-    - "불필요한 특수권한은 chmod -s 로 제거합니다."
-    - "불필요한 파일은 삭제하거나 패키지 상태를 점검합니다."
-    - "필요한 경우 특정 그룹만 사용할 수 있도록 그룹 및 실행 권한을 재설계합니다."
-    - "Sticky bit 디렉터리는 /tmp, /var/tmp 등 표준 경로 외 항목의 필요성을 검토합니다."
-    - "조치 전 파일 소유권, 패키지 연계, 서비스 영향도를 반드시 확인합니다."
+    - "Review the business need for SUID/SGID files outside the allowlist."
+    - "Remove unnecessary special permissions with chmod -s."
+    - "Delete unnecessary files or check package status."
+    - "If needed, redesign group and execute permissions so only a specific group can use them."
+    - "For sticky-bit directories, review the need for items outside standard paths such as /tmp and /var/tmp."
+    - "Before remediation, verify file ownership, package relationships, and service impact."
 
 evidence_labels:
-  suid_files: "SUID 설정 파일 목록"
-  sgid_files: "SGID 설정 파일 목록"
-  sticky_dirs: "Sticky bit 설정 디렉터리 목록"
-  unexpected_suid_files: "허용 목록 외 SUID 파일"
-  unexpected_sgid_files: "허용 목록 외 SGID 파일"
-  unexpected_sticky_dirs: "허용 목록 외 Sticky bit 디렉터리"
-  special_permission_count: "특수권한 항목 수"
-  review_required_items: "업무 필요성 검토 대상"
+  suid_files: "List of SUID files"
+  sgid_files: "List of SGID files"
+  sticky_dirs: "List of sticky-bit directories"
+  unexpected_suid_files: "SUID files outside the allowlist"
+  unexpected_sgid_files: "SGID files outside the allowlist"
+  unexpected_sticky_dirs: "Sticky-bit directories outside the allowlist"
+  special_permission_count: "Number of special-permission items"
+  review_required_items: "Items requiring business-need review"
 
 notes:
-  - "SUID/SGID 파일은 모두 취약하다고 단정하지 않고 업무 필요성과 시스템 기본 구성 여부를 함께 봐야 합니다."
-  - "Sticky bit는 주로 /tmp, /var/tmp 같은 공유 디렉터리에 사용됩니다."
-  - "배포판 및 설치 패키지에 따라 허용 목록은 달라질 수 있습니다."
+  - "Do not assume all SUID/SGID files are vulnerable; review business need and whether they are part of the system default configuration."
+  - "Sticky bit is mainly used for shared directories such as /tmp and /var/tmp."
+  - "The allowlist may vary by distribution and installed packages."

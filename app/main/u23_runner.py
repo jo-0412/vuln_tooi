@@ -19,7 +19,7 @@ from app.models.check_result import CheckResult
 
 class U23Runner(object):
     """
-    U-23 SUID, SGID, Sticky bit 설정 파일 점검 실행기
+    U-23 runner for checking files with SUID, SGID, and sticky-bit settings
     """
 
     def __init__(self, check_dir=None):
@@ -41,7 +41,7 @@ class U23Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(to_text(exc))
+                "Failed to load configuration file: {0}".format(to_text(exc))
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -49,13 +49,13 @@ class U23Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-23"),
-            name=self.metadata.get("name", "SUID, SGID, Sticky bit 설정 파일 점검"),
+            name=self.metadata.get("name", "Check Files with SUID, SGID, and Sticky Bit Settings"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "file_and_directory_management"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="추가 검토가 필요한 특수권한 항목이 존재합니다."),
-            detail=self._get_message("manual", "detail", default="특수권한이 설정된 일부 파일 또는 디렉터리에 대해 업무 필요성 및 운영 목적을 추가 확인해야 합니다."),
+            summary=self._get_message("manual", "summary", default="Special-permission items requiring additional review exist."),
+            detail=self._get_message("manual", "detail", default="For some files or directories with special permissions, business need and operational purpose require additional verification."),
             requires_root=self.metadata.get("requires_root", "required"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -78,13 +78,13 @@ class U23Runner(object):
             result.set_status("ERROR", success=False)
             result.summary = self._get_message(
                 "error", "summary",
-                default="점검 실행 중 오류가 발생했습니다."
+                default="An error occurred while running the check."
             )
-            reasons = scan_result.errors or ["파일시스템 스캔을 수행하지 못했습니다."]
+            reasons = scan_result.errors or ["Filesystem scan could not be performed."]
             result.detail = self._merge_detail(
                 self._get_message(
                     "error", "detail",
-                    default="전체 파일시스템 검색 또는 특수권한 항목 수집 중 오류가 발생했습니다."
+                    default="An error occurred while scanning the full filesystem or collecting special-permission items."
                 ),
                 reasons
             )
@@ -189,28 +189,28 @@ class U23Runner(object):
 
         if unexpected_suid:
             reasons.append(
-                "허용 목록 외 SUID 파일이 존재합니다: {0}".format(
+                "SUID files outside the allowlist exist: {0}".format(
                     ", ".join(self._extract_paths(unexpected_suid, limit=10))
                 )
             )
 
         if unexpected_sgid:
             reasons.append(
-                "허용 목록 외 SGID 파일이 존재합니다: {0}".format(
+                "SGID files outside the allowlist exist: {0}".format(
                     ", ".join(self._extract_paths(unexpected_sgid, limit=10))
                 )
             )
 
         if unexpected_sticky:
             reasons.append(
-                "허용 목록 외 Sticky bit 디렉터리가 존재합니다: {0}".format(
+                "Sticky-bit directories outside the allowlist exist: {0}".format(
                     ", ".join(self._extract_paths(unexpected_sticky, limit=10))
                 )
             )
 
         if scan_result.warnings:
             for warning in scan_result.warnings[:5]:
-                reasons.append("스캔 경고: {0}".format(to_text(warning)))
+                reasons.append("Scan warning: {0}".format(to_text(warning)))
 
         comparison_rules = self.policy.get("rules", {}).get("special_permission_rule", {}).get("comparison_rules", {})
         suid_fail = bool(comparison_rules.get("unexpected_suid_files_fail", True))
@@ -236,12 +236,12 @@ class U23Runner(object):
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail", "summary",
-                default="불필요한 SUID/SGID 특수권한 파일이 존재합니다."
+                default="Unnecessary SUID/SGID special-permission files exist."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "fail", "detail",
-                    default="불필요한 SUID/SGID 파일이 존재해 일반 사용자가 해당 파일을 통해 root 권한 상승을 시도할 수 있습니다."
+                    default="Unnecessary SUID/SGID files exist, so ordinary users may attempt root privilege escalation through those files."
                 ),
                 reasons
             )
@@ -251,12 +251,12 @@ class U23Runner(object):
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual", "summary",
-                default="추가 검토가 필요한 특수권한 항목이 존재합니다."
+                default="Special-permission items requiring additional review exist."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "manual", "detail",
-                    default="특수권한이 설정된 일부 파일 또는 디렉터리에 대해 업무 필요성 및 운영 목적을 추가 확인해야 합니다."
+                    default="For some files or directories with special permissions, business need and operational purpose require additional verification."
                 ),
                 reasons
             )
@@ -265,16 +265,16 @@ class U23Runner(object):
         result.set_status("PASS", success=True)
         result.summary = self._get_message(
             "pass", "summary",
-            default="불필요한 SUID/SGID 특수권한 파일이 존재하지 않습니다."
+            default="No unnecessary SUID/SGID special-permission files exist."
         )
         result.detail = self._merge_detail(
             self._get_message(
                 "pass", "detail",
-                default="허용되지 않은 특수권한 파일이 확인되지 않아 일반 사용자에 의한 권한 상승 위험이 낮습니다."
+                default="No unauthorized special-permission files were found, so the risk of privilege escalation by ordinary users is low."
             ),
             [
-                "허용 목록 외 SUID 파일이 없습니다.",
-                "허용 목록 외 SGID 파일이 없습니다.",
+                "No SUID files outside the allowlist were found.",
+                "No SGID files outside the allowlist were found.",
             ]
         )
         return result
@@ -309,7 +309,7 @@ class U23Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     to_text(_yaml_import_error)
                 )
             )
@@ -322,13 +322,13 @@ class U23Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -368,7 +368,7 @@ class U23Runner(object):
         if not filtered:
             return to_text(base_detail).strip()
 
-        merged = [to_text(base_detail).strip(), "", "판정 근거:"]
+        merged = [to_text(base_detail).strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -376,12 +376,12 @@ class U23Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-23",
-            name="SUID, SGID, Sticky bit 설정 파일 점검",
+            name="Check Files with SUID, SGID, and Sticky Bit Settings",
             severity="high",
             category="file_and_directory_management",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=to_text(message),
             requires_root="required"
         )

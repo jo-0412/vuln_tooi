@@ -1,35 +1,35 @@
 #사용자에게 보여줄 문장
-title: "U-01 root 계정 원격 접속 제한"
+title: "U-01 Restrict Remote root Login"
 
 pass:
-  summary: "root 계정의 원격 직접 접속이 차단되어 있습니다."
+  summary: "Direct remote login for the root account is blocked."
   detail: >
-    원격 터미널 서비스를 사용하지 않거나,
-    사용 중인 서비스에서 root 직접 로그인이 제한되어 있어 양호합니다.
+    Remote terminal services are not used,
+    or direct root login is restricted in the services in use, so the configuration is compliant.
 
 fail:
-  summary: "root 계정의 원격 직접 접속이 허용되어 있습니다."
+  summary: "Direct remote login for the root account is allowed."
   detail: >
-    현재 서버는 root 계정의 원격 직접 로그인을 허용하고 있어,
-    비밀번호 추측 또는 무차별 대입 공격 성공 시
-    즉시 최고권한 탈취로 이어질 수 있습니다.
+    This server allows direct remote login for the root account,
+    so if password guessing or brute-force attacks succeed,
+    the attacker can immediately obtain highest privileges.
 
 manual:
-  summary: "자동 판정이 어렵습니다."
+  summary: "Automatic determination is difficult."
   detail: >
-    설정 파일 누락, 비표준 설치 경로, 버전별 기본값 차이 등으로 인해
-    추가 확인이 필요합니다.
+    Due to missing configuration files, non-standard installation paths, or version-specific default differences,
+    additional verification is required.
 
 remediation:
-  summary: "SSH는 PermitRootLogin no 로 설정하고, Telnet 계열은 root 직접 접속을 차단해야 합니다."
+  summary: "Set SSH to PermitRootLogin no and block direct root login for Telnet-family services."
   actions:
-    - "SSH 사용 시 /etc/ssh/sshd_config 에서 PermitRootLogin no 로 설정합니다."
-    - "설정 변경 후 SSH 서비스를 재시작 또는 reload 하여 반영 여부를 확인합니다."
-    - "Telnet 계열 사용 시 /etc/pam.d/login 에 pam_securetty 적용 여부를 확인합니다."
-    - "/etc/securetty 에서 pts/* 항목을 제거하여 원격 root 로그인을 차단합니다."
-    - "운영상 필요 시 일반 사용자 로그인 후 sudo 또는 su 를 통해 관리자 권한을 사용하도록 전환합니다."
+    - "When using SSH, set PermitRootLogin no in /etc/ssh/sshd_config."
+    - "After changing the setting, restart or reload SSH and verify that it is applied."
+    - "When using Telnet-family services, verify that pam_securetty is applied in /etc/pam.d/login."
+    - "Remove pts/* entries from /etc/securetty to block remote root login."
+    - "If operationally required, log in as a normal user and use administrative privileges through sudo or su."
 
 evidence_labels:
-  permit_root_login: "sshd_config 내 PermitRootLogin 값"
-  pam_securetty: "/etc/pam.d/login 내 pam_securetty 적용 여부"
-  securetty_pts_entries: "/etc/securetty 내 pts 허용 여부"
+  permit_root_login: "PermitRootLogin value in sshd_config"
+  pam_securetty: "Whether pam_securetty is applied in /etc/pam.d/login"
+  securetty_pts_entries: "Whether pts is allowed in /etc/securetty"

@@ -21,7 +21,7 @@ from app.models.check_result import CheckResult
 
 class U03Runner(object):
     """
-    U-03 계정 잠금 임계값 설정 점검 실행기
+    U-03 Configure Account Lockout Threshold 점검 실행기
     """
 
     def __init__(self, check_dir=None):
@@ -44,7 +44,7 @@ class U03Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(exc)
+                "Failed to load configuration file: {0}".format(exc)
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -52,13 +52,13 @@ class U03Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-03"),
-            name=self.metadata.get("name", "계정 잠금 임계값 설정"),
+            name=self.metadata.get("name", "Configure Account Lockout Threshold"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "account_management"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="자동 판정이 어렵습니다."),
-            detail=self._get_message("manual", "detail", default="추가 확인이 필요합니다."),
+            summary=self._get_message("manual", "summary", default="Automatic determination is difficult."),
+            detail=self._get_message("manual", "detail", default="additional verification is required."),
             requires_root=self.metadata.get("requires_root", "required"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -112,9 +112,9 @@ class U03Runner(object):
             result,
             key="lockout_backend",
             source="pam/common-auth, pam/common-account, faillock.conf",
-            value=detected_backends if detected_backends else "(미탐지)",
+            value=detected_backends if detected_backends else "(not detected)",
             status="ok" if detected_backends else "fail",
-            notes="탐지된 계정 잠금 정책 구현 방식"
+            notes="Detected account lockout policy implementation method"
         )
 
         deny_status = self._status_for_constraint(
@@ -131,7 +131,7 @@ class U03Runner(object):
             result,
             key="deny",
             source=self._select_source_for_value(tally_result, faillock_result, "deny"),
-            value=effective_deny if effective_deny is not None else "(설정 없음)",
+            value=effective_deny if effective_deny is not None else "(not configured)",
             status=deny_status,
         )
 
@@ -139,7 +139,7 @@ class U03Runner(object):
             result,
             key="unlock_time",
             source=self._select_source_for_value(tally_result, faillock_result, "unlock_time"),
-            value=effective_unlock_time if effective_unlock_time is not None else "(설정 없음)",
+            value=effective_unlock_time if effective_unlock_time is not None else "(not configured)",
             status=unlock_status,
         )
 
@@ -161,11 +161,11 @@ class U03Runner(object):
 
         if all_unreadable:
             result.set_status("MANUAL", success=True)
-            result.summary = self._get_message("manual", "summary", default="자동 판정이 어렵습니다.")
-            base_detail = self._get_message("manual", "detail", default="추가 확인이 필요합니다.")
+            result.summary = self._get_message("manual", "summary", default="Automatic determination is difficult.")
+            base_detail = self._get_message("manual", "detail", default="additional verification is required.")
             result.detail = self._merge_detail(
                 base_detail,
-                ["PAM 관련 설정 파일 또는 faillock.conf 를 읽지 못해 수동 확인이 필요합니다."]
+                ["PAM-related configuration files or faillock.conf could not be read, so manual verification is required."]
             )
             return result
 
@@ -173,12 +173,12 @@ class U03Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="계정 잠금 임계값이 적절히 설정되어 있습니다."
+                default="The account lockout threshold is properly configured."
             )
             base_detail = self._get_message(
                 "pass",
                 "detail",
-                default="로그인 실패 누적에 따른 계정 잠금 정책이 적절히 적용되어 있습니다."
+                default="The account lockout policy for accumulated login failures is properly applied."
             )
             result.detail = self._merge_detail(base_detail, reasons)
             return result
@@ -187,12 +187,12 @@ class U03Runner(object):
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail", "summary",
-                default="계정 잠금 임계값이 없거나 기준에 맞지 않습니다."
+                default="The account lockout threshold is missing or does not meet the criteria."
             )
             base_detail = self._get_message(
                 "fail",
                 "detail",
-                default="로그인 실패 누적에 따른 계정 잠금이 없어 공격자가 무제한으로 비밀번호를 시도할 수 있습니다."
+                default="Because accounts are not locked after accumulated login failures, attackers can try passwords without limit."
             )
             result.detail = self._merge_detail(base_detail, reasons)
             return result
@@ -200,16 +200,16 @@ class U03Runner(object):
         result.set_status("FAIL", success=False)
         result.summary = self._get_message(
             "fail", "summary",
-            default="계정 잠금 임계값이 없거나 기준에 맞지 않습니다."
+            default="The account lockout threshold is missing or does not meet the criteria."
         )
         base_detail = self._get_message(
             "fail",
             "detail",
-            default="로그인 실패 누적에 따른 계정 잠금이 없어 공격자가 무제한으로 비밀번호를 시도할 수 있습니다."
+            default="Because accounts are not locked after accumulated login failures, attackers can try passwords without limit."
         )
         result.detail = self._merge_detail(
             base_detail,
-            ["pam_tally, pam_tally2, pam_faillock 기반 계정 잠금 정책을 찾지 못했습니다."]
+            ["No account lockout policy based on pam_tally, pam_tally2, or pam_faillock was found."]
         )
         return result
 
@@ -283,14 +283,14 @@ class U03Runner(object):
         reasons = []
 
         if not auth_entries:
-            reasons.append("pam_tally 또는 pam_tally2 가 auth 체인에 적용되어 있지 않습니다.")
+            reasons.append("pam_tally or pam_tally2 is not applied in the auth chain.")
 
         if requires_reset and not reset_present:
-            reasons.append("pam_tally 또는 pam_tally2 사용 시 account 체인에 reset 옵션이 필요합니다.")
+            reasons.append("When using pam_tally or pam_tally2, the reset option is required in the account chain.")
 
         if not self._evaluate_constraint(deny_value, deny_constraint):
             reasons.append(
-                "계정 잠금 임계값(deny)이 기준을 충족하지 않습니다. (현재: {0}, 기준: {1} {2})".format(
+                "Account lockout threshold (deny) does not meet the criterion. (current: {0}, criterion: {1} {2})".format(
                     deny_value,
                     to_text(deny_constraint.get("operator", "==")),
                     deny_constraint.get("value")
@@ -298,10 +298,10 @@ class U03Runner(object):
             )
 
         if unlock_value is None:
-            reasons.append("잠금 해제 시간(unlock_time) 설정을 찾지 못했습니다.")
+            reasons.append("Unlock duration (unlock_time) setting was not found.")
         elif not self._evaluate_constraint(unlock_value, unlock_constraint):
             reasons.append(
-                "잠금 해제 시간(unlock_time)이 권장 기준에 미달합니다. (현재: {0}, 기준: {1} {2})".format(
+                "Unlock duration (unlock_time) is below the recommended criterion. (current: {0}, criterion: {1} {2})".format(
                     unlock_value,
                     to_text(unlock_constraint.get("operator", "==")),
                     unlock_constraint.get("value")
@@ -324,7 +324,7 @@ class U03Runner(object):
             "backend": "tally",
             "detected": True,
             "status": "pass",
-            "reason": "pam_tally 또는 pam_tally2 기반 계정 잠금 정책이 적용되어 있고 deny 값이 기준을 충족합니다.",
+            "reason": "A pam_tally or pam_tally2 based account lockout policy is applied and the deny value meets the criterion.",
             "deny": deny_value,
             "unlock_time": unlock_value,
             "source_for_deny": self._entry_source(deny_entry, auth_pam, account_pam),
@@ -398,17 +398,17 @@ class U03Runner(object):
         reasons = []
 
         if "preauth" in required_auth_occurrences and not preauth_present:
-            reasons.append("pam_faillock.so auth 체인에 preauth 적용이 없습니다.")
+            reasons.append("pam_faillock.so preauth is not applied in the auth chain.")
 
         if "authfail" in required_auth_occurrences and not authfail_present:
-            reasons.append("pam_faillock.so auth 체인에 authfail 적용이 없습니다.")
+            reasons.append("pam_faillock.so authfail is not applied in the auth chain.")
 
         if requires_account_module and not account_present:
-            reasons.append("pam_faillock.so 가 account 체인에 적용되어 있지 않습니다.")
+            reasons.append("pam_faillock.so is not applied in the account chain.")
 
         if not self._evaluate_constraint(deny_value, deny_constraint):
             reasons.append(
-                "계정 잠금 임계값(deny)이 기준을 충족하지 않습니다. (현재: {0}, 기준: {1} {2})".format(
+                "Account lockout threshold (deny) does not meet the criterion. (current: {0}, criterion: {1} {2})".format(
                     deny_value,
                     to_text(deny_constraint.get("operator", "==")),
                     deny_constraint.get("value")
@@ -416,10 +416,10 @@ class U03Runner(object):
             )
 
         if unlock_value is None:
-            reasons.append("잠금 해제 시간(unlock_time) 설정을 찾지 못했습니다.")
+            reasons.append("Unlock duration (unlock_time) setting was not found.")
         elif not self._evaluate_constraint(unlock_value, unlock_constraint):
             reasons.append(
-                "잠금 해제 시간(unlock_time)이 권장 기준에 미달합니다. (현재: {0}, 기준: {1} {2})".format(
+                "Unlock duration (unlock_time) is below the recommended criterion. (current: {0}, criterion: {1} {2})".format(
                     unlock_value,
                     to_text(unlock_constraint.get("operator", "==")),
                     unlock_constraint.get("value")
@@ -442,7 +442,7 @@ class U03Runner(object):
             "backend": "faillock",
             "detected": True,
             "status": "pass",
-            "reason": "pam_faillock 기반 계정 잠금 정책이 적용되어 있고 deny 값이 기준을 충족합니다.",
+            "reason": "A pam_faillock based account lockout policy is applied and the deny value meets the criterion.",
             "deny": deny_value,
             "unlock_time": unlock_value,
             "source_for_deny": self._select_faillock_value_source(deny_entry, faillock_conf, faillock_lines, "deny"),
@@ -516,13 +516,13 @@ class U03Runner(object):
 
     def _add_authselect_evidence(self, result, command_info):
         if command_info.get("status") == "ok":
-            value = command_info.get("stdout") or "(출력 없음)"
+            value = command_info.get("stdout") or "(no output)"
             status = "ok"
         elif command_info.get("status") == "not_found":
-            value = "(명령 없음)"
+            value = "(command unavailable)"
             status = "manual"
         else:
-            value = command_info.get("stderr") or "(실행 실패)"
+            value = command_info.get("stderr") or "(execution failed)"
             status = "manual"
 
         result.add_evidence(
@@ -745,7 +745,7 @@ class U03Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     _yaml_import_error
                 )
             )
@@ -758,13 +758,13 @@ class U03Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -783,7 +783,7 @@ class U03Runner(object):
         if not filtered:
             return to_text(base_detail).strip()
 
-        merged = [to_text(base_detail).strip(), "", "판정 근거:"]
+        merged = [to_text(base_detail).strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -791,12 +791,12 @@ class U03Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-03",
-            name="계정 잠금 임계값 설정",
+            name="Configure Account Lockout Threshold",
             severity="high",
             category="account_management",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=to_text(message),
             requires_root="required"
         )

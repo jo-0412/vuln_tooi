@@ -1,20 +1,20 @@
 code: "U-28"
-name: "접속 IP 및 포트 제한"
+name: "Restrict Access by IP and Port"
 severity: "high"
 category: "network_security"
 requires_root: "required"
 
 summary: >
-  서비스 접근을 허용된 호스트와 포트로 제한하고 있는지 점검하여
-  외부 공격면을 줄이는 항목이다.
+  This item checks whether service access is restricted to allowed hosts and ports
+  to reduce the external attack surface.
 
 description: >
-  TCP Wrapper, OS 방화벽, 서비스 설정을 통해
-  허용된 IP와 포트만 열어두고 있는지 확인한다.
+  It checks whether TCP Wrapper, OS firewall, and service settings
+  open only allowed IPs and ports.
 
 purpose: >
-  허용된 호스트만 서비스에 접근하게 하여
-  SSH, FTP, Telnet 등 네트워크 서비스의 외부 노출 범위를 최소화한다.
+  Allow only permitted hosts to access services
+  to minimize external exposure of network services such as SSH, FTP, and Telnet.
 
 platform: "unix_like"
 

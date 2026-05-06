@@ -21,7 +21,7 @@ class U06Runner(object):
     """
     U-06 사용자 계정 su 기능 제한 점검 실행기
 
-    판정 기준 개요:
+    판정 criterion 개요:
     1) /etc/group 에 허용 그룹(wheel)이 존재하는지 확인
     2) /etc/pam.d/su 가 존재하면 PAM 방식으로 pam_wheel 적용 여부를 우선 판정
     3) PAM 파일이 없으면 /usr/bin/su 또는 /bin/su 의 그룹/권한으로 비PAM 방식 판정

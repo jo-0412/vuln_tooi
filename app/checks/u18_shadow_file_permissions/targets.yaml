@@ -3,53 +3,53 @@ files:
     - path: "/etc/shadow"
       type: "config"
       parser: "file_metadata"
-      description: "Linux/Solaris 비밀번호 해시 저장 파일"
+      description: "Linux/Solaris password hash storage file"
 
   optional:
     - path: "/etc/security/passwd"
       type: "config"
       parser: "file_metadata"
-      description: "AIX 비밀번호 저장 파일"
+      description: "AIX password storage file"
 
     - path: "/tcb/files/auth"
       type: "directory"
       parser: "file_metadata"
-      description: "HP-UX Trusted Mode 비밀번호 저장 경로"
+      description: "HP-UX Trusted Mode password storage path"
 
 commands:
   - name: "shadow_ls"
     command: "ls -l /etc/shadow"
-    description: "/etc/shadow 파일 소유자 및 권한 확인"
+    description: "Check /etc/shadow owner and permissions"
 
   - name: "aix_passwd_ls"
     command: "ls -l /etc/security/passwd"
-    description: "AIX 비밀번호 저장 파일 소유자 및 권한 확인"
+    description: "Check AIX password storage file owner and permissions"
 
   - name: "trusted_mode_ls"
     command: "ls -ld /tcb/files/auth"
-    description: "HP-UX Trusted Mode 경로 확인"
+    description: "Check HP-UX Trusted Mode path"
 
 evidence:
   - key: "shadow_exists"
     source: "/etc/shadow"
-    description: "/etc/shadow 존재 여부"
+    description: "/etc/shadow existence status"
 
   - key: "shadow_owner_uid"
     source: "/etc/shadow"
-    description: "/etc/shadow 소유자 UID"
+    description: "/etc/shadow owner UID"
 
   - key: "shadow_group_gid"
     source: "/etc/shadow"
-    description: "/etc/shadow 그룹 GID"
+    description: "/etc/shadow group GID"
 
   - key: "shadow_mode"
     source: "/etc/shadow"
-    description: "/etc/shadow 권한 값"
+    description: "/etc/shadow permission value"
 
   - key: "aix_passwd_exists"
     source: "/etc/security/passwd"
-    description: "AIX 대체 저장 파일 존재 여부"
+    description: "Whether AIX alternative storage file exists"
 
   - key: "trusted_mode_path_exists"
     source: "/tcb/files/auth"
-    description: "HP-UX Trusted Mode 경로 존재 여부"
+    description: "HP-UX Trusted Mode path existence status"

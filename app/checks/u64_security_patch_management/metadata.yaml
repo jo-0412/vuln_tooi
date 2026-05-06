@@ -1,26 +1,26 @@
 code: "U-64"
-name: "주기적 보안 패치 및 벤더 권고사항 적용"
+name: "Apply Periodic Security Patches and Vendor Advisories"
 severity: "high"
 category: "patch_management"
 requires_root: "required"
 
 summary: >
-  최신 보안 패치 적용 체계와 벤더 권고사항 반영 여부를 점검하여
-  시스템 안정성과 보안성을 유지하는 항목이다.
+  This item checks whether latest security patch application processes and vendor advisories are reflected
+  to maintain system stability and security.
 
 description: >
-  패치 정책 문서, 자동 업데이트 설정, 최근 패치 이력,
-  현재 업그레이드 가능 패키지 상태를 확인하여
-  주기적인 보안 패치 관리가 이루어지고 있는지 점검한다.
+  It checks patch policy documents, automatic update settings, recent patch history,
+  and current upgradeable package status
+  to verify whether periodic security patch management is performed.
 
 purpose: >
-  최신 보안 패치를 적용하고 벤더 권고사항을 반영하여
-  이미 공개된 취약점에 대한 노출 가능성을 줄인다.
+  Apply the latest security patches and reflect vendor advisories
+  to reduce exposure to already disclosed vulnerabilities.
 
 platform: "unix_like"
 
 references:
-  - "패치 정책 문서"
-  - "정기점검보고서"
-  - "작업계획서"
-  - "패키지/커널 버전 정보"
+  - "Patch policy document"
+  - "Periodic inspection report"
+  - "Work plan"
+  - "Package/kernel version information"

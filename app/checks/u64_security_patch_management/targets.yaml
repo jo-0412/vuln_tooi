@@ -3,85 +3,85 @@ files:
     - path: "/etc/apt/apt.conf.d/20auto-upgrades"
       type: "config"
       parser: "plain_text"
-      description: "자동 업데이트 설정 파일"
+      description: "Automatic update configuration file"
 
     - path: "/etc/apt/apt.conf.d/50unattended-upgrades"
       type: "config"
       parser: "plain_text"
-      description: "무인 보안 업데이트 설정 파일"
+      description: "Unattended security update configuration file"
 
     - path: "/var/log/apt/history.log"
       type: "log"
       parser: "plain_text"
-      description: "APT 패키지 설치 및 업그레이드 이력"
+      description: "APT package installation and upgrade history"
 
     - path: "/var/log/unattended-upgrades/unattended-upgrades.log"
       type: "log"
       parser: "plain_text"
-      description: "자동 보안 업데이트 로그"
+      description: "Automatic security update log"
 
 commands:
   - name: "hostnamectl"
     command: "hostnamectl"
-    description: "OS 및 커널 버전 정보 확인"
+    description: "Check OS and kernel version information"
 
   - name: "uname_kernel"
     command: "uname -r"
-    description: "현재 커널 버전 확인"
+    description: "Check current kernel version"
 
   - name: "apt_upgradable"
     command: "apt list --upgradable"
-    description: "업그레이드 가능한 패키지 목록 확인"
+    description: "Check list of upgradeable packages"
 
   - name: "dpkg_unattended"
     command: "dpkg -l unattended-upgrades"
-    description: "unattended-upgrades 설치 여부 확인"
+    description: "Check whether unattended-upgrades is installed"
 
   - name: "apt_policy"
     command: "apt-cache policy"
-    description: "APT 저장소 및 우선순위 정보 확인"
+    description: "Check APT repository and priority information"
 
   - name: "grep_auto_upgrade"
     command: "grep -R \"Unattended-Upgrade\\|Update-Package-Lists\" /etc/apt/apt.conf.d/"
-    description: "자동 업데이트 관련 설정 흔적 확인"
+    description: "Check automatic update configuration traces"
 
 evidence:
   - key: "auto_upgrade_config_exists"
     source: "/etc/apt/apt.conf.d/20auto-upgrades"
-    description: "자동 업데이트 설정 파일 존재 여부"
+    description: "Whether the automatic update configuration file exists"
 
   - key: "unattended_upgrade_config_exists"
     source: "/etc/apt/apt.conf.d/50unattended-upgrades"
-    description: "무인 보안 업데이트 설정 파일 존재 여부"
+    description: "Whether the unattended security update configuration file exists"
 
   - key: "auto_upgrade_enabled"
     source: "/etc/apt/apt.conf.d/20auto-upgrades"
-    description: "자동 패키지 목록 갱신/업데이트 활성화 여부"
+    description: "Whether automatic package list refresh/update is enabled"
 
   - key: "unattended_installed"
     source: "dpkg -l unattended-upgrades"
-    description: "unattended-upgrades 설치 여부"
+    description: "Whether unattended-upgrades is installed"
 
   - key: "recent_patch_history_present"
     source: "/var/log/apt/history.log"
-    description: "최근 패치 이력 존재 여부"
+    description: "Whether recent patch history exists"
 
   - key: "unattended_log_present"
     source: "/var/log/unattended-upgrades/unattended-upgrades.log"
-    description: "자동 업데이트 로그 존재 여부"
+    description: "Whether automatic update logs exist"
 
   - key: "upgradable_packages"
     source: "apt list --upgradable"
-    description: "업그레이드 가능한 패키지 목록"
+    description: "List of upgradeable packages"
 
   - key: "upgradable_package_count"
     source: "apt list --upgradable"
-    description: "업그레이드 가능한 패키지 수"
+    description: "Number of upgradeable packages"
 
   - key: "os_version_info"
     source: "hostnamectl"
-    description: "OS 및 커널 버전 정보"
+    description: "OS and kernel version information"
 
   - key: "kernel_version"
     source: "uname -r"
-    description: "현재 커널 버전"
+    description: "Current kernel version"

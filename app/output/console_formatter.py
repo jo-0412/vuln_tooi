@@ -5,7 +5,6 @@ import json
 import sys
 
 from app.compat import PY2, to_text
-from app.output.english_text import translate_object, translate_text
 
 
 class ConsoleFormatter(object):
@@ -21,7 +20,7 @@ class ConsoleFormatter(object):
     def format(self, result, verbose=True):
         lines = []
 
-        lines.append("[{0}] {1}".format(result.code, translate_text(result.name)))
+        lines.append("[{0}] {1}".format(result.code, result.name))
         lines.append("Status: {0}".format(self._colorize_status(result.status)))
         lines.append("Severity: {0}".format(result.severity))
         lines.append("Category: {0}".format(result.category))
@@ -30,20 +29,20 @@ class ConsoleFormatter(object):
         lines.append("")
 
         lines.append("Summary")
-        lines.append("- {0}".format(translate_text(result.summary)))
+        lines.append("- {0}".format(result.summary))
         lines.append("")
 
         lines.append("Detail")
-        for line in self._split_lines(translate_text(result.detail)):
+        for line in self._split_lines(result.detail):
             lines.append("- {0}".format(line))
         lines.append("")
 
         if result.remediation_summary or result.remediation_steps:
             lines.append("Remediation")
             if result.remediation_summary:
-                lines.append("- {0}".format(translate_text(result.remediation_summary)))
+                lines.append("- {0}".format(result.remediation_summary))
             for step in result.remediation_steps:
-                lines.append("  * {0}".format(translate_text(step)))
+                lines.append("  * {0}".format(step))
             lines.append("")
 
         if verbose and result.evidences:
@@ -55,13 +54,13 @@ class ConsoleFormatter(object):
         if result.errors:
             lines.append("Errors")
             for error in result.errors:
-                lines.append("- {0}".format(translate_text(error)))
+                lines.append("- {0}".format(error))
             lines.append("")
 
         return "\n".join(lines).rstrip() + "\n"
 
     def format_json(self, result):
-        return json.dumps(translate_object(result.to_dict()), ensure_ascii=False, indent=2)
+        return json.dumps(result.to_dict(), ensure_ascii=False, indent=2)
 
     def print_result(self, result, verbose=True):
         output = self.format(result, verbose=verbose)
@@ -81,11 +80,11 @@ class ConsoleFormatter(object):
 
     def _format_evidence(self, evidence):
         lines = [
-            "- {0}".format(translate_text(evidence.label)),
+            "- {0}".format(evidence.label),
             "  source: {0}".format(evidence.source),
         ]
 
-        value_text = translate_text(self._value_to_text(evidence.value))
+        value_text = self._value_to_text(evidence.value)
         value_lines = value_text.splitlines() or [value_text]
 
         if len(value_lines) > self.max_value_lines:
@@ -102,7 +101,7 @@ class ConsoleFormatter(object):
             lines.append("  state : {0}".format(evidence.status))
 
         if evidence.excerpt:
-            excerpt_lines = translate_text(evidence.excerpt).splitlines()
+            excerpt_lines = to_text(evidence.excerpt).splitlines()
             if excerpt_lines:
                 lines.append("  excerpt: {0}".format(excerpt_lines[0]))
                 for extra_line in excerpt_lines[1:3]:
@@ -111,7 +110,7 @@ class ConsoleFormatter(object):
                     lines.append("           ... {0} additional lines omitted".format(len(excerpt_lines) - 3))
 
         if evidence.notes:
-            notes_lines = translate_text(evidence.notes).splitlines()
+            notes_lines = to_text(evidence.notes).splitlines()
             if notes_lines:
                 lines.append("  notes  : {0}".format(notes_lines[0]))
                 for extra_line in notes_lines[1:3]:

@@ -47,7 +47,7 @@ class PackageUpdateReader(object):
                 "available": False,
                 "returncode": 999,
                 "stdout": "",
-                "stderr": "빈 명령입니다.",
+                "stderr": "Empty command.",
                 "command": command_text,
             }
 
@@ -69,7 +69,7 @@ class PackageUpdateReader(object):
                 "available": False,
                 "returncode": 999,
                 "stdout": "",
-                "stderr": "빈 명령입니다.",
+                "stderr": "Empty command.",
                 "command": command_text,
             }
 
@@ -80,7 +80,7 @@ class PackageUpdateReader(object):
                 "available": False,
                 "returncode": 127,
                 "stdout": "",
-                "stderr": "명령을 찾을 수 없습니다.",
+                "stderr": "Command not found.",
                 "command": command_text,
             }
 

@@ -19,7 +19,7 @@ from app.models.check_result import CheckResult
 
 class U18Runner(object):
     """
-    U-18 /etc/shadow 파일 소유자 및 권한 설정 점검 실행기
+    U-18 Configure /etc/shadow Owner and Permissions 점검 실행기
     """
 
     def __init__(self, check_dir=None):
@@ -41,7 +41,7 @@ class U18Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(to_text(exc))
+                "Failed to load configuration file: {0}".format(to_text(exc))
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -49,13 +49,13 @@ class U18Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-18"),
-            name=self.metadata.get("name", "/etc/shadow 파일 소유자 및 권한 설정"),
+            name=self.metadata.get("name", "Configure /etc/shadow Owner and Permissions"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "account_management"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="자동 판정이 어렵습니다."),
-            detail=self._get_message("manual", "detail", default="추가 확인이 필요합니다."),
+            summary=self._get_message("manual", "summary", default="Automatic determination is difficult."),
+            detail=self._get_message("manual", "detail", default="additional verification is required."),
             requires_root=self.metadata.get("requires_root", "required"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -105,19 +105,19 @@ class U18Runner(object):
             reasons = []
 
             if aix_exists or trusted_mode_exists:
-                reasons.append("Linux 표준 경로(/etc/shadow)는 없지만 플랫폼별 대체 저장 경로가 존재합니다.")
+                reasons.append("The standard Linux path (/etc/shadow) is missing, but a platform-specific alternative storage path exists.")
             else:
-                reasons.append("/etc/shadow 파일을 찾지 못했습니다.")
+                reasons.append("/etc/shadow file was not found.")
 
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual", "summary",
-                default="자동 판정이 어렵습니다."
+                default="Automatic determination is difficult."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "manual", "detail",
-                    default="Linux 표준 경로가 아니거나 플랫폼별 대체 저장 구조가 확인되어 추가 확인이 필요합니다."
+                    default="Additional verification is required because this is not a standard Linux path or a platform-specific alternative storage structure was detected."
                 ),
                 reasons
             )
@@ -125,18 +125,18 @@ class U18Runner(object):
 
         shadow_stat = self._get_file_stat(shadow_path)
         if shadow_stat is None:
-            result.add_error("/etc/shadow 파일 메타데이터를 확인하지 못했습니다.")
+            result.add_error("/etc/shadow metadata could not be verified.")
             result.set_status("ERROR", success=False)
             result.summary = self._get_message(
                 "error", "summary",
-                default="점검 실행 중 오류가 발생했습니다."
+                default="An error occurred while running the check."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "error", "detail",
-                    default="필수 파일 확인 또는 메타데이터 수집 중 오류가 발생했습니다."
+                    default="An error occurred while checking required files or collecting metadata."
                 ),
-                ["/etc/shadow 파일 메타데이터를 수집할 수 없습니다."]
+                ["/etc/shadow metadata could not be collected."]
             )
             return result
 
@@ -181,7 +181,7 @@ class U18Runner(object):
 
         if not owner_ok:
             reasons.append(
-                "/etc/shadow 소유자 UID가 기준을 충족하지 않습니다. (현재: {0}, 기준: {1} {2})".format(
+                "/etc/shadow owner UID does not meet the criterion. (current: {0}, criterion: {1} {2})".format(
                     owner_uid,
                     to_text(owner_constraint.get("operator", "==")),
                     owner_constraint.get("value")
@@ -190,7 +190,7 @@ class U18Runner(object):
 
         if not mode_ok:
             reasons.append(
-                "/etc/shadow 권한이 기준을 초과합니다. (현재: {0}, 기준: <= {1})".format(
+                "/etc/shadow permissions exceed the criterion. (current: {0}, criterion: <= {1})".format(
                     mode_octal,
                     mode_constraint.get("value")
                 )
@@ -200,16 +200,16 @@ class U18Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="/etc/shadow 파일의 소유자 및 권한이 적절합니다."
+                default="The owner and permissions of /etc/shadow are appropriate."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "pass", "detail",
-                    default="비밀번호 해시 파일이 관리자만 제어할 수 있도록 보호되고 있어 비인가자의 접근 및 변조 위험이 낮습니다."
+                    default="The password hash file is protected so that only administrators can control it, so the risk of unauthorized access and tampering is low."
                 ),
                 [
-                    "/etc/shadow 소유자 UID가 root(0)입니다.",
-                    "/etc/shadow 권한이 {0} 이며 기준(<= {1})을 충족합니다.".format(
+                    "/etc/shadow owner UID is root(0).",
+                    "/etc/shadow permission is {0} and meets the criterion (<= {1}).".format(
                         mode_octal,
                         mode_constraint.get("value")
                     )
@@ -220,12 +220,12 @@ class U18Runner(object):
         result.set_status("FAIL", success=False)
         result.summary = self._get_message(
             "fail", "summary",
-            default="/etc/shadow 파일의 소유자 또는 권한 설정이 미흡합니다."
+            default="The owner or permission settings of /etc/shadow are insufficient."
         )
         result.detail = self._merge_detail(
             self._get_message(
                 "fail", "detail",
-                default="비밀번호 해시 파일 권한이 과도하거나 소유자가 부적절하여 비인가자가 해시를 수집해 크래킹 공격을 시도할 수 있습니다."
+                default="The password hash file has excessive permissions or an inappropriate owner, so unauthorized users may collect hashes and attempt cracking attacks."
             ),
             reasons
         )
@@ -302,7 +302,7 @@ class U18Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     to_text(_yaml_import_error)
                 )
             )
@@ -315,13 +315,13 @@ class U18Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -361,7 +361,7 @@ class U18Runner(object):
         if not filtered:
             return to_text(base_detail).strip()
 
-        merged = [to_text(base_detail).strip(), "", "판정 근거:"]
+        merged = [to_text(base_detail).strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -369,12 +369,12 @@ class U18Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-18",
-            name="/etc/shadow 파일 소유자 및 권한 설정",
+            name="Configure /etc/shadow Owner and Permissions",
             severity="high",
             category="account_management",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=to_text(message),
             requires_root="required"
         )

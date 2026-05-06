@@ -19,11 +19,11 @@ from app.models.check_result import CheckResult
 
 class U66Runner(object):
     """
-    U-66 정책에 따른 시스템 로깅 설정 점검 실행기
+    U-66 Configure System Logging According to Policy 점검 실행기
     1차 구현:
     - rsyslog/syslog 설정 흔적 확인
-    - rsyslog/syslog 서비스 활성 여부 확인
-    - 주요 로그 파일 존재 여부 확인
+    - rsyslog/Whether the syslog service is active 확인
+    - Whether major log files exist 확인
     """
 
     def __init__(self, check_dir=None):
@@ -45,7 +45,7 @@ class U66Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(to_text(exc))
+                "Failed to load configuration file: {0}".format(to_text(exc))
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -53,13 +53,13 @@ class U66Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-66"),
-            name=self.metadata.get("name", "정책에 따른 시스템 로깅 설정"),
+            name=self.metadata.get("name", "Configure System Logging According to Policy"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "logging_and_audit"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="시스템 로깅 정책 준수 여부를 추가 확인해야 합니다."),
-            detail=self._get_message("manual", "detail", default="일부 로깅 흔적은 존재하지만 조직 정책에 맞게 설정되어 있는지와 실제 운영 정책 문서 존재 여부는 추가 검토가 필요합니다."),
+            summary=self._get_message("manual", "summary", default="System logging policy compliance requires additional verification."),
+            detail=self._get_message("manual", "detail", default="Some logging traces exist, but additional review is required to verify whether settings match organizational policy and whether actual operating policy documents exist."),
             requires_root=self.metadata.get("requires_root", "partial"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -165,7 +165,7 @@ class U66Runner(object):
             key="logging_policy_document_note",
             label=self._label("logging_policy_document_note"),
             source="manual",
-            value="조직 로그 정책 문서는 운영 증적으로 별도 확인이 필요합니다.",
+            value="Organizational log policy documents require separate verification as operational evidence.",
             status="manual"
         )
 
@@ -184,22 +184,22 @@ class U66Runner(object):
         reasons = []
 
         if config_signal:
-            reasons.append("로깅 설정 파일에서 활성 로그 기록 설정 흔적이 확인됩니다.")
+            reasons.append("Active logging configuration traces were found in logging configuration files.")
         else:
-            reasons.append("로깅 설정 파일에서 유효한 활성 로그 기록 설정을 충분히 확인하지 못했습니다.")
+            reasons.append("Valid active logging settings could not be sufficiently verified in logging configuration files.")
 
         if service_signal:
             if rsyslog_service_active:
-                reasons.append("rsyslog 서비스가 활성 상태입니다.")
+                reasons.append("The rsyslog service is active.")
             if syslog_service_active:
-                reasons.append("syslog 서비스가 활성 상태입니다.")
+                reasons.append("The syslog service is active.")
         else:
-            reasons.append("rsyslog 또는 syslog 서비스 활성 상태를 확인하지 못했습니다.")
+            reasons.append("The active status of rsyslog or syslog service could not be verified.")
 
         if log_signal:
-            reasons.append("주요 로그 파일이 실제로 존재합니다. (개수: {0})".format(major_log_file_count))
+            reasons.append("Major log files actually exist. (count: {0})".format(major_log_file_count))
         else:
-            reasons.append("주요 로그 파일 존재 여부를 확인하지 못했습니다.")
+            reasons.append("Major log file existence could not be verified.")
 
         minimum_positive_signals = self._get_minimum_positive_signals()
         collectable = self._has_any_collectable_evidence(file_map, command_map, service_map)
@@ -208,14 +208,14 @@ class U66Runner(object):
             result.set_status("ERROR", success=False)
             result.summary = self._get_message(
                 "error", "summary",
-                default="점검 실행 중 오류가 발생했습니다."
+                default="An error occurred while running the check."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "error", "detail",
-                    default="로깅 설정 파일, 서비스 상태 또는 로그 파일 수집 중 오류가 발생했습니다."
+                    default="An error occurred while collecting logging configuration files, service status, or log files."
                 ),
-                ["로깅 설정 및 서비스 상태 관련 정보를 충분히 수집하지 못했습니다."]
+                ["Information related to logging configuration and service status could not be collected sufficiently."]
             )
             return result
 
@@ -223,13 +223,13 @@ class U66Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="정책에 따른 시스템 로깅 설정 흔적이 확인됩니다."
+                default="System logging configuration traces according to policy were found."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "pass",
                     "detail",
-                    default="로깅 설정, 서비스 상태, 주요 로그 파일 중 일부가 확인되어 시스템 로깅 체계가 일정 수준 이상 동작하고 있습니다."
+                    default="Some logging settings, service status, or major log files were found, indicating that the system logging structure is operating at least to a certain level."
                 ),
                 reasons
             )
@@ -239,13 +239,13 @@ class U66Runner(object):
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail", "summary",
-                default="시스템 로깅 설정이 미흡하거나 정책 흔적이 부족합니다."
+                default="System logging configuration is insufficient or policy traces are lacking."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "fail",
                     "detail",
-                    default="시스템 로깅이 미설정 또는 정책 미준수 상태라 사고 발생 시 원인 규명과 증적 확보가 어렵습니다."
+                    default="Because system logging is not configured or does not comply with policy, identifying causes and securing evidence during incidents is difficult."
                 ),
                 reasons
             )
@@ -254,13 +254,13 @@ class U66Runner(object):
         result.set_status("MANUAL", success=True)
         result.summary = self._get_message(
             "manual", "summary",
-            default="시스템 로깅 정책 준수 여부를 추가 확인해야 합니다."
+            default="System logging policy compliance requires additional verification."
         )
         result.detail = self._merge_detail(
             self._get_message(
                 "manual",
                 "detail",
-                default="일부 로깅 흔적은 존재하지만 조직 정책에 맞게 설정되어 있는지와 실제 운영 정책 문서 존재 여부는 추가 검토가 필요합니다."
+                default="Some logging traces exist, but additional review is required to verify whether settings match organizational policy and whether actual operating policy documents exist."
             ),
             reasons
         )
@@ -374,7 +374,7 @@ class U66Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     to_text(_yaml_import_error)
                 )
             )
@@ -387,13 +387,13 @@ class U66Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -433,7 +433,7 @@ class U66Runner(object):
         if not filtered:
             return to_text(base_detail).strip()
 
-        merged = [to_text(base_detail).strip(), "", "판정 근거:"]
+        merged = [to_text(base_detail).strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -441,12 +441,12 @@ class U66Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-66",
-            name="정책에 따른 시스템 로깅 설정",
+            name="Configure System Logging According to Policy",
             severity="high",
             category="logging_and_audit",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=to_text(message),
             requires_root="partial"
         )

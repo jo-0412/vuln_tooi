@@ -5,8 +5,8 @@ profile: "default_unix"
 rules:
   uid_zero_rule:
     description: >
-      /etc/passwd 파일에서 UID가 0인 계정을 추출하여
-      root 외 UID 0 계정 존재 여부를 판정한다.
+      Extract accounts with UID 0 from /etc/passwd
+      and determine whether UID 0 accounts other than root exist.
 
     required_files:
       - "/etc/passwd"
@@ -18,31 +18,31 @@ rules:
     when_required_file_missing: "error"
 
     pass_condition: >
-      UID가 0인 계정이 root 하나뿐인 경우
+      Only root has UID 0
 
     fail_condition: >
-      root 외 UID가 0인 계정이 존재하는 경우
+      A UID 0 account other than root exists
 
     manual_condition: >
-      root 계정을 찾지 못했거나 passwd 구조가 비정상인 경우
+      The root account was not found or the passwd structure is abnormal
 
 final_decision:
   pass:
-    - "UID가 0인 계정이 root 하나뿐임"
+    - "Only root has UID 0"
 
   fail:
-    - "root 외 UID가 0인 계정이 존재함"
+    - "A UID 0 account other than root exists"
 
   manual:
-    - "passwd 구조가 비정상적이거나 root 계정이 확인되지 않음"
+    - "The passwd structure is abnormal or the root account was not verified"
 
   error:
-    - "필수 파일(/etc/passwd)을 읽지 못함"
+    - "The required file (/etc/passwd) could not be read"
 
 evidence_required:
-  - "UID가 0인 계정 목록"
-  - "root 외 UID 0 계정 목록"
-  - "/etc/passwd 관련 행 전체"
+  - "List of accounts with UID 0"
+  - "List of UID 0 accounts other than root"
+  - "Full related lines in /etc/passwd"
 
 thresholds:
   uid_zero_accounts_allowed:

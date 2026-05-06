@@ -29,7 +29,7 @@ from app.models.check_result import CheckResult
 
 class U04Runner(object):
     """
-    U-04 비밀번호 파일 보호 점검 실행기
+    U-04 Protect Password Files 점검 실행기
     """
 
     def __init__(self, check_dir=None):
@@ -52,7 +52,7 @@ class U04Runner(object):
         except Exception as exc:
             error_message = to_text(exc)
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(error_message)
+                "Failed to load configuration file: {0}".format(error_message)
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -60,13 +60,13 @@ class U04Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-04"),
-            name=self.metadata.get("name", "비밀번호 파일 보호"),
+            name=self.metadata.get("name", "Protect Password Files"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "account_management"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="자동 판정이 어렵습니다."),
-            detail=self._get_message("manual", "detail", default="추가 확인이 필요합니다."),
+            summary=self._get_message("manual", "summary", default="Automatic determination is difficult."),
+            detail=self._get_message("manual", "detail", default="additional verification is required."),
             requires_root=self.metadata.get("requires_root", "required"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -152,23 +152,23 @@ class U04Runner(object):
             key="pwconv_available",
             label=self._label("pwconv_available"),
             source="pwconv",
-            value=pwconv_path if pwconv_available else "(명령 없음)",
+            value=pwconv_path if pwconv_available else "(command unavailable)",
             status="ok" if pwconv_available else "manual"
         )
 
         if passwd_file is None or (not passwd_file.success) or (not passwd_file.content):
-            result.add_error("/etc/passwd 파일을 읽지 못했습니다.")
+            result.add_error("/etc/passwd file could not be read.")
             result.set_status("ERROR", success=False)
             result.summary = self._get_message(
                 "error", "summary",
-                default="점검 실행 중 오류가 발생했습니다."
+                default="An error occurred while running the check."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "error", "detail",
-                    default="필수 파일을 읽지 못했거나 점검에 필요한 정보 수집 중 오류가 발생했습니다."
+                    default="A required file could not be read, or an error occurred while collecting information needed for the check."
                 ),
-                ["/etc/passwd 파일을 읽지 못해 판정할 수 없습니다."]
+                ["/etc/passwd file could not be read, so the check cannot determine the result."]
             )
             return result
 
@@ -192,7 +192,7 @@ class U04Runner(object):
             key="passwd_root_second_field",
             label=self._label("passwd_root_second_field"),
             source="/etc/passwd",
-            value=root_second_field if root_second_field is not None else "(root 계정 없음)",
+            value=root_second_field if root_second_field is not None else "(root account missing)",
             status=root_field_status,
             excerpt=passwd_analysis.get("root_line")
         )
@@ -224,19 +224,19 @@ class U04Runner(object):
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual", "summary",
-                default="자동 판정이 어렵습니다."
+                default="Automatic determination is difficult."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "manual", "detail",
-                    default="추가 확인이 필요합니다."
+                    default="additional verification is required."
                 ),
-                ["root 계정 정보를 /etc/passwd 에서 찾지 못했습니다."]
+                ["Root account information was not found in /etc/passwd."]
             )
             return result
 
         if plain_password_detected:
-            reasons.append("/etc/passwd 에 직접 비밀번호 값 또는 안전하지 않은 값이 저장된 계정이 존재합니다.")
+            reasons.append("Accounts with direct password values or unsafe values in /etc/passwd exist.")
 
         standard_shadow_ok = False
         if root_second_field == "x" and shadow_exists:
@@ -248,16 +248,16 @@ class U04Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="비밀번호 파일이 적절히 보호되고 있습니다."
+                default="Password files are properly protected."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "pass", "detail",
-                    default="비밀번호가 쉐도우 분리 또는 안전한 저장 방식으로 보호되고 있습니다."
+                    default="Passwords are protected through shadow separation or a secure storage method."
                 ),
                 [
-                    "/etc/passwd 의 root 두 번째 필드가 x 입니다.",
-                    "/etc/shadow 파일이 존재합니다."
+                    "The second field for root in /etc/passwd is x.",
+                    "/etc/shadow exists."
                 ]
             )
             return result
@@ -266,35 +266,35 @@ class U04Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="비밀번호 파일이 적절히 보호되고 있습니다."
+                default="Password files are properly protected."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "pass", "detail",
-                    default="비밀번호가 쉐도우 분리 또는 안전한 저장 방식으로 보호되고 있습니다."
+                    default="Passwords are protected through shadow separation or a secure storage method."
                 ),
-                ["플랫폼별 보호 저장소(/etc/security/passwd 또는 /tcb/files/auth)가 존재합니다."]
+                ["Platform-specific protected storage (/etc/security/passwd or /tcb/files/auth) exists."]
             )
             return result
 
         if root_second_field == "x" and (not shadow_exists):
-            reasons.append("/etc/passwd 의 root 두 번째 필드가 x 이지만 /etc/shadow 파일이 존재하지 않습니다.")
+            reasons.append("The second field for root in /etc/passwd is x, but /etc/shadow does not exist.")
 
         if (root_second_field != "x") and (not alt_store_ok):
-            reasons.append("쉐도우 비밀번호를 사용하지 않고 플랫폼별 보호 저장소도 확인되지 않습니다.")
+            reasons.append("Shadow passwords are not used and no platform-specific protected storage was found.")
 
         if not reasons:
-            reasons.append("비밀번호 파일 보호 상태가 기준을 충족하지 않습니다.")
+            reasons.append("Protect Password Files status does not meet the criterion.")
 
         result.set_status("FAIL", success=False)
         result.summary = self._get_message(
             "fail", "summary",
-            default="비밀번호 파일 보호 설정이 미흡합니다."
+            default="Password file protection is insufficient."
         )
         result.detail = self._merge_detail(
             self._get_message(
                 "fail", "detail",
-                default="계정 비밀번호가 쉐도우 분리 또는 안전한 암호화로 보호되지 않아 파일 유출 시 비밀번호 노출 위험이 큽니다."
+                default="Account passwords are not protected by shadow separation or secure encryption, so password exposure risk is high if files are leaked."
             ),
             reasons
         )
@@ -405,7 +405,7 @@ class U04Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     _yaml_import_error
                 )
             )
@@ -418,13 +418,13 @@ class U04Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -464,7 +464,7 @@ class U04Runner(object):
         if not filtered:
             return to_text(base_detail).strip()
 
-        merged = [to_text(base_detail).strip(), "", "판정 근거:"]
+        merged = [to_text(base_detail).strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -472,12 +472,12 @@ class U04Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-04",
-            name="비밀번호 파일 보호",
+            name="Protect Password Files",
             severity="high",
             category="account_management",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=to_text(message),
             requires_root="required"
         )

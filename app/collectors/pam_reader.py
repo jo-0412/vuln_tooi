@@ -102,7 +102,7 @@ class PamReader(object):
             path=path,
             status="ok",
             success=True,
-            message="PAM 설정 파싱에 성공했습니다.",
+            message="PAM configuration parsing succeeded.",
             entries=entries,
             line_count=len(content.splitlines()),
             metadata=metadata or {},

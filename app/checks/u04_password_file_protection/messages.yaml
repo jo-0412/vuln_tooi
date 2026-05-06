@@ -1,52 +1,52 @@
-title: "U-04 비밀번호 파일 보호"
+title: "U-04 Protect Password Files"
 
 pass:
-  summary: "비밀번호 파일이 적절히 보호되고 있습니다."
+  summary: "Password files are properly protected."
   detail: >
-    비밀번호가 쉐도우 분리 또는 안전한 저장 방식으로 보호되고 있어
-    계정 정보 파일 유출 시 직접적인 비밀번호 노출 위험이 낮습니다.
+    Passwords are protected through shadow separation or a secure storage method,
+    so the risk of direct password exposure is low if account information files are leaked.
 
 fail:
-  summary: "비밀번호 파일 보호 설정이 미흡합니다."
+  summary: "Password file protection is insufficient."
   detail: >
-    계정 비밀번호가 쉐도우 분리 또는 안전한 암호화로 보호되지 않아
-    파일 유출 시 비밀번호 노출 위험이 큽니다.
+    Account passwords are not protected by shadow separation or secure encryption,
+    so password exposure risk is high if files are leaked.
 
 manual:
-  summary: "자동 판정이 어렵습니다."
+  summary: "Automatic determination is difficult."
   detail: >
-    시스템이 Linux 표준 저장 구조가 아니거나 플랫폼별 비밀번호 저장 방식을 사용하고 있어
-    추가 확인이 필요합니다.
+    The system does not use the standard Linux storage structure or uses a platform-specific password storage method,
+    additional verification is required.
 
 error:
-  summary: "점검 실행 중 오류가 발생했습니다."
+  summary: "An error occurred while running the check."
   detail: >
-    필수 파일을 읽지 못했거나 점검에 필요한 정보 수집 중 오류가 발생했습니다.
+    A required file could not be read, or an error occurred while collecting information needed for the check.
 
 remediation:
-  summary: "쉐도우 비밀번호 사용 여부를 확인하고, 비밀번호가 passwd 파일에 직접 저장되지 않도록 조치해야 합니다."
+  summary: "Verify shadow password usage and ensure passwords are not stored directly in the passwd file."
   actions:
-    - "/etc/passwd 의 두 번째 필드가 x 로 설정되어 있는지 확인합니다."
-    - "/etc/shadow 파일이 존재하는지 확인합니다."
-    - "쉐도우 비밀번호를 사용하지 않는 경우 pwconv 등을 이용해 쉐도우 비밀번호를 적용합니다."
-    - "/etc/passwd 에 직접 비밀번호 해시 또는 평문이 저장되어 있다면 즉시 제거하고 쉐도우 구조로 전환합니다."
-    - "HP-UX 계열은 필요 시 Trusted Mode 전환을 검토합니다."
-    - "AIX 계열은 /etc/security/passwd 저장 구조를 확인합니다."
-    - "적용 전 관련 계정 파일을 반드시 백업하고 root 권한으로 수행합니다."
+    - "Verify that the second field in /etc/passwd is set to x."
+    - "Verify that /etc/shadow exists."
+    - "If shadow passwords are not used, apply shadow passwords using pwconv or an equivalent tool."
+    - "If password hashes or plaintext passwords are stored directly in /etc/passwd, remove them immediately and switch to a shadow structure."
+    - "For HP-UX-family systems, consider switching to Trusted Mode if needed."
+    - "For AIX-family systems, check the /etc/security/passwd storage structure."
+    - "Before applying changes, back up related account files and perform the work with root privileges."
 
 evidence_labels:
-  passwd_exists: "/etc/passwd 존재 여부"
-  passwd_root_second_field: "root 계정의 passwd 두 번째 필드"
-  passwd_accounts_using_x: "passwd 파일 내 쉐도우 분리 사용 여부"
-  passwd_plain_password_detected: "passwd 파일 내 직접 비밀번호 저장 여부"
-  shadow_exists: "/etc/shadow 존재 여부"
-  shadow_readable: "/etc/shadow 읽기 가능 여부"
-  aix_passwd_exists: "AIX 비밀번호 저장 파일 존재 여부"
-  trusted_mode_path_exists: "HP-UX Trusted Mode 경로 존재 여부"
-  pwconv_available: "pwconv 명령 사용 가능 여부"
+  passwd_exists: "/etc/passwd existence status"
+  passwd_root_second_field: "Second passwd field for the root account"
+  passwd_accounts_using_x: "Whether shadow separation is used in the passwd file"
+  passwd_plain_password_detected: "Whether passwords are stored directly in the passwd file"
+  shadow_exists: "/etc/shadow existence status"
+  shadow_readable: "Whether /etc/shadow is readable"
+  aix_passwd_exists: "AIX password storage file existence status"
+  trusted_mode_path_exists: "HP-UX Trusted Mode path existence status"
+  pwconv_available: "Whether the pwconv command is available"
 
 notes:
-  - "Linux 계열은 /etc/passwd 와 /etc/shadow 조합을 우선 확인합니다."
-  - "AIX 계열은 /etc/security/passwd 를 확인합니다."
-  - "HP-UX 계열은 /tcb/files/auth 와 Trusted Mode 사용 여부를 확인합니다."
-  - "passwd 파일의 두 번째 필드가 x 가 아니면 쉐도우 비밀번호 미사용 가능성이 큽니다."
+  - "For Linux-family systems, check the /etc/passwd and /etc/shadow combination first."
+  - "For AIX-family systems, check /etc/security/passwd."
+  - "For HP-UX-family systems, check /tcb/files/auth and Trusted Mode usage."
+  - "If the second field of the passwd file is not x, shadow passwords are likely not in use."

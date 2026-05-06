@@ -5,8 +5,8 @@ profile: "default_unix"
 rules:
   shadow_permission_rule:
     description: >
-      Linux/Solaris 계열에서는 /etc/shadow 파일의 소유자가 root 이고
-      권한이 400 이하인지 확인한다.
+      On Linux/Solaris-family systems, /etc/shadow is owned by root and
+      permissions are checked to ensure they are 400 or more restrictive.
 
     required_files:
       - "/etc/shadow"
@@ -22,18 +22,18 @@ rules:
     when_required_file_missing: "manual"
 
     pass_condition: >
-      /etc/shadow 파일이 존재하고
-      소유자 UID가 0(root)이며
-      권한이 0400 이하인 경우
+      /etc/shadow exists and
+      owner UID is 0 (root) and
+      permissions are 0400 or more restrictive
 
     fail_condition: >
-      /etc/shadow 소유자가 root가 아니거나
-      권한이 0400 이하가 아닌 경우
+      /etc/shadow owner is not root or
+      permissions are not 0400 or more restrictive
 
   alt_platform_rule:
     description: >
-      AIX 또는 HP-UX 계열에서는 대체 저장 경로 존재 여부를 참고하여
-      추가 수동 확인 대상으로 분류할 수 있다.
+      On AIX or HP-UX-family systems, refer to whether alternative storage paths exist
+      and classify the item for additional manual verification.
 
     optional_files:
       - "/etc/security/passwd"
@@ -42,29 +42,29 @@ rules:
     allow_alt_password_store: true
 
     manual_condition: >
-      Linux 표준 경로가 아니고
-      AIX 또는 HP-UX 계열 저장 구조가 확인되는 경우
+      This is not a standard Linux path and
+      an AIX or HP-UX-family storage structure is detected
 
 final_decision:
   pass:
-    - "/etc/shadow 소유자가 root이고 권한이 0400 이하임"
+    - "/etc/shadow is owned by root and permissions are 0400 or more restrictive"
 
   fail:
-    - "/etc/shadow 소유자가 root가 아님"
-    - "/etc/shadow 권한이 0400 이하가 아님"
+    - "/etc/shadow owner is not root"
+    - "/etc/shadow permissions are not 0400 or more restrictive"
 
   manual:
-    - "AIX 또는 HP-UX 대체 저장 구조로 보여 추가 확인 필요"
-    - "/etc/shadow 가 없지만 대체 저장 경로가 존재함"
+    - "This appears to be an AIX or HP-UX alternative storage structure and requires additional verification"
+    - "/etc/shadow is missing, but an alternative storage path exists"
 
   error:
-    - "필수 파일의 메타데이터 확인에 실패함"
+    - "Failed to verify required file metadata"
 
 evidence_required:
-  - "/etc/shadow 존재 여부"
-  - "/etc/shadow 소유자 UID"
-  - "/etc/shadow 권한 값"
-  - "AIX/HP-UX 대체 저장 경로 결과"
+  - "/etc/shadow existence status"
+  - "/etc/shadow owner UID"
+  - "/etc/shadow permission value"
+  - "AIX/HP-UX alternative storage path result"
 
 thresholds:
   required_owner_uid: 0

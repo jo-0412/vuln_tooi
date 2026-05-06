@@ -1,46 +1,46 @@
-title: "U-03 계정 잠금 임계값 설정"
+title: "U-03 Configure Account Lockout Threshold"
 
 pass:
-  summary: "계정 잠금 임계값이 적절히 설정되어 있습니다."
+  summary: "The account lockout threshold is properly configured."
   detail: >
-    로그인 실패 누적에 따른 계정 잠금 정책이 적용되어 있어
-    brute force 및 dictionary 공격에 대한 기본 방어 수준이 확보되어 있습니다.
+    An account lockout policy based on accumulated login failures is applied,
+    providing a baseline defense against brute-force and dictionary attacks.
 
 fail:
-  summary: "계정 잠금 임계값이 없거나 기준에 맞지 않습니다."
+  summary: "The account lockout threshold is missing or does not meet the criteria."
   detail: >
-    로그인 실패 누적에 따른 계정 잠금이 없어 공격자가 무제한으로 비밀번호를 시도할 수 있습니다.
+    Because accounts are not locked after accumulated login failures, attackers can try passwords without limit.
 
 manual:
-  summary: "자동 판정이 어렵습니다."
+  summary: "Automatic determination is difficult."
   detail: >
-    설정 파일 누락, 비표준 PAM 구성, 배포판별 차이 등으로 인해
-    추가 확인이 필요합니다.
+    Due to missing configuration files, non-standard PAM configuration, or distribution-specific differences,
+    additional verification is required.
 
 remediation:
-  summary: "계정 잠금 임계값을 10회 이하로 설정하고 잠금 해제 및 PAM 적용 순서를 올바르게 구성해야 합니다."
+  summary: "Set the account lockout threshold to 10 attempts or fewer, and correctly configure unlock handling and PAM order."
   actions:
-    - "pam_tally.so, pam_tally2.so 또는 pam_faillock.so 중 하나를 사용하여 로그인 실패 누적 정책을 적용합니다."
-    - "deny 값을 10 이하로 설정합니다."
-    - "unlock_time 값을 설정하여 잠금 해제 시간을 명시합니다."
-    - "pam_tally 또는 pam_tally2 사용 시 account 체인에 reset 옵션 또는 동등한 후처리를 구성합니다."
-    - "pam_faillock 사용 시 auth 체인과 account 체인에 모두 적절히 적용되어 있는지 확인합니다."
-    - "배포판에서 authselect 를 사용하는 경우 현재 활성 프로파일과 기능을 함께 점검합니다."
-    - "PAM 파일 수정은 로그인 자체에 영향을 줄 수 있으므로 백업 후 적용합니다."
+    - "Use one of pam_tally.so, pam_tally2.so, or pam_faillock.so to apply a login failure accumulation policy."
+    - "Set the deny value to 10 or less."
+    - "Set unlock_time to specify the unlock duration."
+    - "When using pam_tally or pam_tally2, configure the reset option or equivalent post-processing in the account chain."
+    - "When using pam_faillock, verify that it is properly applied in both the auth and account chains."
+    - "If the distribution uses authselect, check the current active profile and features together."
+    - "PAM file changes can affect login itself, so apply them after taking a backup."
 
 evidence_labels:
-  lockout_backend: "계정 잠금 정책 구현 방식"
-  deny: "계정 잠금 임계값"
-  unlock_time: "잠금 해제 시간"
-  pam_tally_module: "pam_tally.so 적용 여부"
-  pam_tally2_module: "pam_tally2.so 적용 여부"
-  pam_faillock_auth_module: "pam_faillock.so auth 체인 적용 여부"
-  pam_faillock_account_module: "pam_faillock.so account 체인 적용 여부"
-  reset_option: "reset 옵션 적용 여부"
-  authselect_profile: "authselect 활성 프로파일"
+  lockout_backend: "Account lockout policy implementation method"
+  deny: "Account lockout threshold"
+  unlock_time: "Unlock duration"
+  pam_tally_module: "Whether pam_tally.so is applied"
+  pam_tally2_module: "Whether pam_tally2.so is applied"
+  pam_faillock_auth_module: "Whether pam_faillock.so is applied in the auth chain"
+  pam_faillock_account_module: "Whether pam_faillock.so is applied in the account chain"
+  reset_option: "Whether the reset option is applied"
+  authselect_profile: "Active authselect profile"
 
 notes:
-  - "Debian 계열은 /etc/pam.d/common-auth, /etc/pam.d/common-account 를 우선 확인합니다."
-  - "RHEL 계열 호환 처리를 위해 system-auth, password-auth 는 optional 로 둡니다."
-  - "일부 환경에서는 deny, unlock_time 이 PAM 모듈 옵션이 아니라 faillock.conf 에 정의될 수 있습니다."
-  - "PAM 모듈 순서나 인터페이스 구성이 잘못되면 로그인 장애가 발생할 수 있습니다."
+  - "For Debian-family systems, check /etc/pam.d/common-auth and /etc/pam.d/common-account first."
+  - "For RHEL-family compatibility, treat system-auth and password-auth as optional."
+  - "In some environments, deny and unlock_time may be defined in faillock.conf instead of PAM module options."
+  - "Incorrect PAM module order or interface configuration may cause login failures."

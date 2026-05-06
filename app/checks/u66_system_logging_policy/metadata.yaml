@@ -1,20 +1,20 @@
 code: "U-66"
-name: "정책에 따른 시스템 로깅 설정"
+name: "Configure System Logging According to Policy"
 severity: "high"
 category: "logging_and_audit"
 requires_root: "partial"
 
 summary: >
-  조직 정책에 따른 시스템 로깅 설정과 실제 로그 생성 여부를 점검하여
-  사고 분석, 증적 확보, 감사 대응 가능성을 확인하는 항목이다.
+  This item checks organizational system logging policy and whether logs are actually generated
+  to verify incident analysis, evidence collection, and audit response capability.
 
 description: >
-  syslog/rsyslog 설정 파일, 로깅 서비스 상태, 주요 로그 파일 존재 여부를 확인해
-  정책에 따른 시스템 로깅이 실제로 동작하고 있는지 점검한다.
+  It checks syslog/rsyslog configuration files, logging service status, and whether major log files exist
+  to verify whether system logging according to policy is actually operating.
 
 purpose: >
-  보안 사고 발생 시 원인 분석, 침해 사실 확인, 법적·감사 대응이 가능하도록
-  시스템 로그 기록 체계를 유지하기 위함이다.
+  Maintain the system log recording structure so that causes can be analyzed, incidents verified, and legal/audit responses supported
+  when security incidents occur.
 
 platform: "unix_like"
 

@@ -533,11 +533,11 @@ class U37Runner(object):
     @staticmethod
     def _is_mode_at_most(current_mode_octal, max_mode_octal):
         """
-        현재 권한이 기준 권한 이하인지 확인한다.
+        current 권한이 criterion 권한 이하인지 확인한다.
 
         주의:
         - 단순 숫자 비교 방식이다.
-        - control file의 0640 이하 판정처럼 명확한 기준에 사용한다.
+        - control file의 0640 이하 판정처럼 명확한 criterion에 사용한다.
         """
         try:
             current_value = int(to_text(current_mode_octal).strip(), 8)

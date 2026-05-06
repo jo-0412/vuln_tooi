@@ -34,7 +34,6 @@ from app.main.u63_runner import U63Runner
 from app.main.u64_runner import U64Runner
 from app.main.u66_runner import U66Runner
 from app.output.console_formatter import ConsoleFormatter
-from app.output.english_text import translate_object
 from app.compat import to_text
 
 EXIT_CODE_MAP = {
@@ -74,7 +73,7 @@ def build_parser():
 
 def calculate_exit_code(results):
     """
-    여러 결과 중 가장 심각한 상태 기준으로 종료 코드 결정
+    여러 결과 중 가장 심각한 상태 criterion으로 종료 코드 결정
     ERROR > FAIL > MANUAL > PASS
     """
     statuses = [result.status for result in results]
@@ -197,7 +196,7 @@ def main():
     if args.json:
         print(
             json.dumps(
-                [translate_object(result.to_dict()) for result in results],
+                [result.to_dict() for result in results],
                 ensure_ascii=False,
                 indent=2
             )

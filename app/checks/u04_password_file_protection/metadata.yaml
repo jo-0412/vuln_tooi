@@ -1,20 +1,20 @@
 code: "U-04"
-name: "비밀번호 파일 보호"
+name: "Protect Password Files"
 severity: "high"
 category: "account_management"
 requires_root: "required"
 
 summary: >
-  비밀번호가 평문 또는 취약한 형태로 저장되지 않도록
-  쉐도우 비밀번호 사용 여부와 저장 위치 보호 상태를 점검하는 항목이다.
+  This item checks shadow password usage and protected storage locations
+  to ensure passwords are not stored in plaintext or weak formats.
 
 description: >
-  /etc/passwd, /etc/shadow 및 일부 Unix 계열의 비밀번호 저장 위치를 확인하여
-  비밀번호가 분리 저장되거나 안전하게 보호되고 있는지 점검한다.
+  It checks /etc/passwd, /etc/shadow, and password storage locations for some Unix-family systems
+  to verify whether passwords are separated or securely protected.
 
 purpose: >
-  계정 비밀번호가 평문 또는 취약한 형태로 노출되지 않도록 하고,
-  시스템 파일 유출 시 비밀번호 정보가 직접 노출되는 위험을 줄인다.
+  Prevent account passwords from being exposed in plaintext or weak formats,
+  and reduce the risk of direct password information exposure if system files are leaked.
 
 platform: "unix_like"
 

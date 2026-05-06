@@ -1,22 +1,22 @@
 #이 항목이 무엇인지 설명하는 파일
 code: "U-01"
-name: "root 계정 원격 접속 제한"
+name: "Restrict Remote root Login"
 severity: "high"
 category: "account_management"
 requires_root: "partial"
 
 summary: >
-  외부 비인가자가 root 계정으로 직접 원격 접속해
-  시스템을 장악하는 것을 원천 차단하기 위한 항목이다.
+  This item prevents unauthorized external users from directly logging in remotely as root
+  and taking control of the system at the source.
 
 description: >
-  원격 터미널 서비스를 사용하지 않거나,
-  사용 시 root 직접 접속을 차단해야 한다.
+  Remote terminal services are not used,
+  when used, direct root login must be blocked.
 
 purpose: >
-  root 계정의 원격 직접 로그인을 제한하여
-  비밀번호 추측, 무차별 대입, 관리자 계정 노출에 따른
-  최고권한 탈취 위험을 줄인다.
+  Restrict direct remote login for the root account
+  to reduce risks from password guessing, brute-force attacks, and administrator account exposure,
+  including the risk of highest-privilege compromise.
 
 platform: "debian_family"
 

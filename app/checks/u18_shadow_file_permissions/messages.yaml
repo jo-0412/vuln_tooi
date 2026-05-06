@@ -1,49 +1,49 @@
-title: "U-18 /etc/shadow 파일 소유자 및 권한 설정"
+title: "U-18 Configure /etc/shadow Owner and Permissions"
 
 pass:
-  summary: "/etc/shadow 파일의 소유자 및 권한이 적절합니다."
+  summary: "The owner and permissions of /etc/shadow are appropriate."
   detail: >
-    비밀번호 해시 파일이 관리자만 제어할 수 있도록 보호되고 있어
-    비인가자의 접근 및 변조 위험이 낮습니다.
+    The password hash file is protected so that only administrators can control it,
+    so the risk of unauthorized access and tampering is low.
 
 fail:
-  summary: "/etc/shadow 파일의 소유자 또는 권한 설정이 미흡합니다."
+  summary: "The owner or permission settings of /etc/shadow are insufficient."
   detail: >
-    비밀번호 해시 파일 권한이 과도하거나 소유자가 부적절하여
-    비인가자가 해시를 수집해 크래킹 공격을 시도할 수 있습니다.
+    The password hash file has excessive permissions or an inappropriate owner,
+    so unauthorized users may collect hashes and attempt cracking attacks.
 
 manual:
-  summary: "자동 판정이 어렵습니다."
+  summary: "Automatic determination is difficult."
   detail: >
-    Linux 표준 경로가 아니거나 플랫폼별 대체 저장 구조가 확인되어
-    추가 확인이 필요합니다.
+    A non-standard Linux path or platform-specific alternative storage structure was detected,
+    additional verification is required.
 
 error:
-  summary: "점검 실행 중 오류가 발생했습니다."
+  summary: "An error occurred while running the check."
   detail: >
-    필수 파일 확인 또는 메타데이터 수집 중 오류가 발생했습니다.
+    An error occurred while checking required files or collecting metadata.
 
 remediation:
-  summary: "/etc/shadow 파일은 root 소유, 0400 이하 권한으로 제한해야 합니다."
+  summary: "The /etc/shadow file must be owned by root and restricted to permission 0400 or more restrictive."
   actions:
-    - "/etc/shadow 파일 소유자를 root 로 설정합니다."
-    - "/etc/shadow 파일 권한을 0400 으로 제한합니다."
-    - "필요 시 chown root /etc/shadow 명령으로 소유자를 수정합니다."
-    - "필요 시 chmod 400 /etc/shadow 명령으로 권한을 수정합니다."
-    - "AIX 계열은 /etc/security/passwd 를 확인합니다."
-    - "HP-UX 계열은 /tcb/files/auth 경로의 보호 상태를 확인합니다."
-    - "변경 전 관련 파일을 반드시 백업합니다."
+    - "Set the owner of /etc/shadow to root."
+    - "Restrict /etc/shadow permissions to 0400."
+    - "If needed, change the owner using chown root /etc/shadow."
+    - "If needed, change permissions using chmod 400 /etc/shadow."
+    - "For AIX-family systems, check /etc/security/passwd."
+    - "For HP-UX-family systems, check the protection status of /tcb/files/auth."
+    - "Back up related files before making changes."
 
 evidence_labels:
-  shadow_exists: "/etc/shadow 존재 여부"
-  shadow_owner_uid: "/etc/shadow 소유자 UID"
-  shadow_group_gid: "/etc/shadow 그룹 GID"
-  shadow_mode: "/etc/shadow 권한 값"
-  aix_passwd_exists: "AIX 비밀번호 저장 파일 존재 여부"
-  trusted_mode_path_exists: "HP-UX Trusted Mode 경로 존재 여부"
+  shadow_exists: "/etc/shadow existence status"
+  shadow_owner_uid: "/etc/shadow owner UID"
+  shadow_group_gid: "/etc/shadow group GID"
+  shadow_mode: "/etc/shadow permission value"
+  aix_passwd_exists: "AIX password storage file existence status"
+  trusted_mode_path_exists: "HP-UX Trusted Mode path existence status"
 
 notes:
-  - "Linux/Solaris 계열은 /etc/shadow 파일을 우선 확인합니다."
-  - "AIX 계열은 /etc/security/passwd 를 확인합니다."
-  - "HP-UX 계열은 /tcb/files/auth 와 Trusted Mode 사용 여부를 확인합니다."
-  - "권한 기준은 0400 이하를 기본 기준으로 사용합니다."
+  - "For Linux/Solaris-family systems, check /etc/shadow first."
+  - "For AIX-family systems, check /etc/security/passwd."
+  - "For HP-UX-family systems, check /tcb/files/auth and Trusted Mode usage."
+  - "The permission criterion uses 0400 or more restrictive as the default."

@@ -3,101 +3,101 @@ files:
     - path: "/etc/login.defs"
       type: "config"
       parser: "key_value"
-      description: "비밀번호 최소/최대 사용기간 확인"
+      description: "Check minimum/maximum password age"
 
     - path: "/etc/security/pwquality.conf"
       type: "config"
       parser: "key_value"
-      description: "비밀번호 복잡도 정책 확인"
+      description: "Check password complexity policy"
 
     - path: "/etc/pam.d/common-password"
       type: "config"
       parser: "pam"
-      description: "Debian 계열 PAM 비밀번호 정책 적용 여부 확인"
+      description: "Check whether Debian-family PAM password policy is applied"
 
   optional:
     - path: "/etc/security/pwhistory.conf"
       type: "config"
       parser: "key_value"
-      description: "최근 비밀번호 재사용 금지 횟수 확인"
+      description: "Check the number of recent passwords that cannot be reused"
 
     - path: "/etc/pam.d/system-auth"
       type: "config"
       parser: "pam"
-      description: "RHEL 계열 호환 경로"
+      description: "RHEL-family compatibility path"
 
     - path: "/etc/default/passwd"
       type: "config"
       parser: "key_value"
-      description: "일부 Unix 계열 비밀번호 정책 경로"
+      description: "Password policy path for some Unix-family systems"
 
     - path: "/etc/default/security"
       type: "config"
       parser: "key_value"
-      description: "일부 Unix 계열 비밀번호 정책 경로"
+      description: "Password policy path for some Unix-family systems"
 
 commands:
   - name: "check_password_age"
     command: "grep -E 'PASS_MAX_DAYS|PASS_MIN_DAYS' /etc/login.defs"
-    description: "비밀번호 최소/최대 사용기간 확인"
+    description: "Check minimum/maximum password age"
 
   - name: "check_pwquality"
     command: "grep -E 'minlen|dcredit|ucredit|lcredit|ocredit|enforce_for_root' /etc/security/pwquality.conf"
-    description: "비밀번호 복잡도 정책 확인"
+    description: "Check password complexity policy"
 
   - name: "check_pwhistory"
     command: "grep remember /etc/security/pwhistory.conf"
-    description: "비밀번호 재사용 금지 설정 확인"
+    description: "Check password reuse prevention settings"
 
 evidence:
   - key: "minlen"
     source: "/etc/security/pwquality.conf"
-    description: "최소 비밀번호 길이"
+    description: "Minimum password length"
 
   - key: "dcredit"
     source: "/etc/security/pwquality.conf"
-    description: "숫자 포함 정책"
+    description: "Digit inclusion policy"
 
   - key: "ucredit"
     source: "/etc/security/pwquality.conf"
-    description: "대문자 포함 정책"
+    description: "Uppercase inclusion policy"
 
   - key: "lcredit"
     source: "/etc/security/pwquality.conf"
-    description: "소문자 포함 정책"
+    description: "Lowercase inclusion policy"
 
   - key: "ocredit"
     source: "/etc/security/pwquality.conf"
-    description: "특수문자 포함 정책"
+    description: "Special character inclusion policy"
 
   - key: "enforce_for_root"
     source: "/etc/security/pwquality.conf"
-    description: "root 계정에도 정책 적용 여부"
+    description: "Whether the policy also applies to the root account"
 
   - key: "remember"
     source: "/etc/security/pwhistory.conf"
-    description: "최근 비밀번호 재사용 금지 횟수"
+    description: "Number of recent passwords that cannot be reused"
 
   - key: "pass_min_days"
     source: "/etc/login.defs"
-    description: "최소 비밀번호 사용기간"
+    description: "Minimum password age"
 
   - key: "pass_max_days"
     source: "/etc/login.defs"
-    description: "최대 비밀번호 사용기간"
+    description: "Maximum password age"
 
   - key: "pam_pwquality_module"
     source: "/etc/pam.d/common-password"
-    description: "pam_pwquality.so 적용 여부"
+    description: "Whether pam_pwquality.so is applied"
 
   - key: "pam_pwhistory_module"
     source: "/etc/pam.d/common-password"
-    description: "pam_pwhistory.so 적용 여부"
+    description: "Whether pam_pwhistory.so is applied"
 
   - key: "pam_unix_module"
     source: "/etc/pam.d/common-password"
-    description: "pam_unix.so 적용 여부"
+    description: "Whether pam_unix.so is applied"
 
   - key: "pam_module_order"
     source: "/etc/pam.d/common-password"
-    description: "pam_pwquality.so, pam_pwhistory.so, pam_unix.so 적용 순서"
+    description: "Application order of pam_pwquality.so, pam_pwhistory.so, and pam_unix.so"

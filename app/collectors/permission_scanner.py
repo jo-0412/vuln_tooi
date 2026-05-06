@@ -106,11 +106,11 @@ class PermissionScanner(object):
 
         for root in normalized_roots:
             if not os.path.exists(root):
-                warnings.append("스캔 시작 경로가 존재하지 않습니다: {0}".format(root))
+                warnings.append("Scan start path does not exist: {0}".format(root))
                 continue
 
             if self._is_excluded(root, normalized_excludes):
-                warnings.append("스캔 시작 경로가 제외 목록에 포함되어 건너뜁니다: {0}".format(root))
+                warnings.append("Scan start path is in the exclusion list and will be skipped: {0}".format(root))
                 continue
 
             root_dev = None
@@ -118,7 +118,7 @@ class PermissionScanner(object):
                 try:
                     root_dev = os.lstat(root).st_dev
                 except Exception as exc:
-                    errors.append("루트 경로 장치 정보를 확인하지 못했습니다: {0} ({1})".format(
+                    errors.append("Root path device information could not be checked: {0} ({1})".format(
                         root,
                         to_text(exc)
                     ))
@@ -146,7 +146,7 @@ class PermissionScanner(object):
                             if st_dir.st_dev != root_dev:
                                 continue
                         except Exception as exc:
-                            warnings.append("디렉터리 장치 정보를 확인하지 못해 제외합니다: {0} ({1})".format(
+                            warnings.append("Directory device information could not be checked, so it will be excluded: {0} ({1})".format(
                                 full_dir,
                                 to_text(exc)
                             ))
@@ -167,7 +167,7 @@ class PermissionScanner(object):
                                 sticky_dirs.append(item)
                                 seen_sticky.add(item.path)
                 except Exception as exc:
-                    warnings.append("디렉터리 메타데이터를 확인하지 못했습니다: {0} ({1})".format(
+                    warnings.append("Directory metadata could not be checked: {0} ({1})".format(
                         dirpath,
                         to_text(exc)
                     ))
@@ -182,7 +182,7 @@ class PermissionScanner(object):
                         st_file = os.lstat(full_path)
                         total_files += 1
                     except Exception as exc:
-                        warnings.append("파일 메타데이터를 확인하지 못했습니다: {0} ({1})".format(
+                        warnings.append("File metadata could not be checked: {0} ({1})".format(
                             full_path,
                             to_text(exc)
                         ))
@@ -245,9 +245,9 @@ class PermissionScanner(object):
         def _handler(exc):
             filename = getattr(exc, "filename", None)
             if filename:
-                errors.append("디렉터리 순회 오류: {0}".format(to_text(filename)))
+                errors.append("Directory traversal error: {0}".format(to_text(filename)))
             else:
-                errors.append("디렉터리 순회 오류: {0}".format(to_text(exc)))
+                errors.append("Directory traversal error: {0}".format(to_text(exc)))
         return _handler
 
     def _build_item(self, path, item_type, st_obj):

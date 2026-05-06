@@ -19,7 +19,7 @@ from app.compat import to_text
 
 class U02Runner(object):
     """
-    U-02 비밀번호 관리정책 설정 점검 실행기
+    U-02 Configure Password Management Policy 점검 실행기
     """
 
     def __init__(self, check_dir=None):
@@ -42,7 +42,7 @@ class U02Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(exc)
+                "Failed to load configuration file: {0}".format(exc)
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -50,13 +50,13 @@ class U02Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-02"),
-            name=self.metadata.get("name", "비밀번호 관리정책 설정"),
+            name=self.metadata.get("name", "Configure Password Management Policy"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "account_management"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="자동 판정이 어렵습니다."),
-            detail=self._get_message("manual", "detail", default="추가 확인이 필요합니다."),
+            summary=self._get_message("manual", "summary", default="Automatic determination is difficult."),
+            detail=self._get_message("manual", "detail", default="additional verification is required."),
             requires_root=self.metadata.get("requires_root", "partial"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -101,36 +101,36 @@ class U02Runner(object):
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail", "summary",
-                default="비밀번호 관리정책이 없거나 약하게 설정되어 있습니다."
+                default="The password management policy is missing or weakly configured."
             )
             base_detail = self._get_message(
                 "fail",
                 "detail",
-                default="비밀번호 정책이 약하거나 없어서 계정 탈취 위험이 높습니다."
+                default="The password policy is weak or missing, increasing the risk of account compromise."
             )
             result.detail = self._merge_detail(base_detail, filtered_reasons)
         elif "manual" in states or "error" in states:
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual", "summary",
-                default="자동 판정이 어렵습니다."
+                default="Automatic determination is difficult."
             )
             base_detail = self._get_message(
                 "manual",
                 "detail",
-                default="추가 확인이 필요합니다."
+                default="additional verification is required."
             )
             result.detail = self._merge_detail(base_detail, filtered_reasons)
         else:
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="비밀번호 관리정책이 적절히 설정되어 있습니다."
+                default="The password management policy is properly configured."
             )
             base_detail = self._get_message(
                 "pass",
                 "detail",
-                default="최소 길이, 문자 조합, 비밀번호 변경 주기, 재사용 금지 정책이 기준에 맞게 설정되어 있습니다."
+                default="Minimum length, character composition, password change cycle, and reuse prevention policy are configured according to the criteria."
             )
             result.detail = self._merge_detail(base_detail, filtered_reasons)
 
@@ -142,8 +142,8 @@ class U02Runner(object):
         required_keys = rule.get("required_keys", {})
 
         if file_result is None or (not file_result.success) or (not file_result.content):
-            result.add_error("pwquality.conf 파일을 읽지 못했습니다.")
-            return "manual", "비밀번호 복잡도 정책 파일(pwquality.conf)을 읽지 못해 수동 확인이 필요합니다."
+            result.add_error("The pwquality.conf file could not be read.")
+            return "manual", "The password complexity policy file (pwquality.conf) could not be read, so manual verification is required."
 
         values, raw_lines = self._parse_key_value_config(file_result.content)
 
@@ -198,7 +198,7 @@ class U02Runner(object):
             ok = self._evaluate_constraint(current, constraint)
             if not ok:
                 failed_conditions.append(
-                    "{0} 값이 기준을 충족하지 않습니다. (현재: {1}, 기준: {2} {3})".format(
+                    "{0} does not meet the criterion. (current: {1}, criterion: {2} {3})".format(
                         key,
                         current,
                         constraint.get("operator"),
@@ -209,15 +209,15 @@ class U02Runner(object):
         if failed_conditions:
             return "fail", " / ".join(failed_conditions)
 
-        return "pass", "pwquality.conf 에 최소 길이 및 문자 조합 정책이 기준을 충족합니다."
+        return "pass", "The minimum length and character composition policies in pwquality.conf meet the criteria."
 
     def _evaluate_aging(self, result, file_result):
         rule = self.policy.get("rules", {}).get("aging_rule", {})
         required_keys = rule.get("required_keys", {})
 
         if file_result is None or (not file_result.success) or (not file_result.content):
-            result.add_error("login.defs 파일을 읽지 못했습니다.")
-            return "manual", "비밀번호 사용기간 정책 파일(login.defs)을 읽지 못해 수동 확인이 필요합니다."
+            result.add_error("The login.defs file could not be read.")
+            return "manual", "The password age policy file (login.defs) could not be read, so manual verification is required."
 
         values, raw_lines = self._parse_key_value_config(file_result.content)
 
@@ -244,7 +244,7 @@ class U02Runner(object):
             ok = self._evaluate_constraint(current, constraint)
             if not ok:
                 failed_conditions.append(
-                    "{0} 값이 기준을 충족하지 않습니다. (현재: {1}, 기준: {2} {3})".format(
+                    "{0} does not meet the criterion. (current: {1}, criterion: {2} {3})".format(
                         key,
                         current,
                         constraint.get("operator"),
@@ -255,7 +255,7 @@ class U02Runner(object):
         if failed_conditions:
             return "fail", " / ".join(failed_conditions)
 
-        return "pass", "login.defs 의 PASS_MIN_DAYS 및 PASS_MAX_DAYS 설정이 기준을 충족합니다."
+        return "pass", "PASS_MIN_DAYS and PASS_MAX_DAYS settings in login.defs meet the criteria."
 
     def _evaluate_history(self, result, pwhistory_file, pam_file):
         rule = self.policy.get("rules", {}).get("history_rule", {})
@@ -292,20 +292,20 @@ class U02Runner(object):
         if remember_value is None:
             if ((pwhistory_file is None or not pwhistory_file.success) and
                     (pam_file is None or not pam_file.success)):
-                return "manual", "최근 비밀번호 재사용 금지 설정 파일을 읽지 못해 수동 확인이 필요합니다."
-            return "fail", "최근 비밀번호 재사용 금지(remember) 설정을 찾지 못했습니다."
+                return "manual", "The recent password reuse prevention configuration file could not be read, so manual verification is required."
+            return "fail", "The recent password reuse prevention setting (remember) was not found."
 
         if not self._evaluate_constraint(remember_value, remember_constraint):
             return (
                 "fail",
-                "최근 비밀번호 재사용 금지 횟수가 기준 미달입니다. (현재: {0}, 기준: {1} {2})".format(
+                "The number of recent passwords that cannot be reused is below the criterion. (current: {0}, criterion: {1} {2})".format(
                     remember_value,
                     remember_constraint.get("operator"),
                     remember_constraint.get("value")
                 )
             )
 
-        return "pass", "최근 비밀번호 재사용 금지 횟수 설정이 기준을 충족합니다."
+        return "pass", "The recent password reuse prevention setting meets the criterion."
 
     def _evaluate_pam(self, result, pam_result):
         rule = self.policy.get("rules", {}).get("pam_rule", {})
@@ -314,8 +314,8 @@ class U02Runner(object):
         order_constraints = rule.get("order_constraints", [])
 
         if pam_result is None or (not pam_result.success):
-            result.add_error("PAM 정책 파일을 읽지 못했습니다.")
-            return "manual", "PAM 정책 파일(common-password/system-auth)을 읽지 못해 수동 확인이 필요합니다."
+            result.add_error("The PAM policy file could not be read.")
+            return "manual", "The PAM policy file (common-password/system-auth) could not be read, so manual verification is required."
 
         module_summary = self.pam_reader.build_module_summary(pam_result)
 
@@ -347,7 +347,7 @@ class U02Runner(object):
         for module_name in required_modules:
             if not self.pam_reader.has_module(pam_result, module_name):
                 failed_conditions.append(
-                    "{0} 모듈이 없습니다.".format(module_name)
+                    "{0} module is missing.".format(module_name)
                 )
 
         order_results = []
@@ -375,7 +375,7 @@ class U02Runner(object):
 
             if ordered is False:
                 failed_conditions.append(
-                    "{0} 가 {1} 보다 앞에 있어야 합니다. (현재 라인: {2}, {3})".format(
+                    "{0} must appear before {1}. (current line: {2}, {3})".format(
                         before,
                         after,
                         before_line,
@@ -389,7 +389,7 @@ class U02Runner(object):
             source=pam_result.path,
             value=order_results,
             status="ok" if not failed_conditions else "fail",
-            notes="PAM 모듈 적용 순서 점검 결과"
+            notes="PAM module order check result"
         )
 
         result.raw["pam_module_summary"] = module_summary
@@ -397,7 +397,7 @@ class U02Runner(object):
         if failed_conditions:
             return "fail", " / ".join(failed_conditions)
 
-        return "pass", "PAM 비밀번호 정책 모듈이 존재하며 적용 순서도 기준을 충족합니다."
+        return "pass", "PAM password policy modules exist and their order meets the criteria."
 
     def _read_path(self, path):
         result = self.file_reader.read(path)
@@ -422,7 +422,7 @@ class U02Runner(object):
             key=key,
             label=self._label(key),
             source=source,
-            value=value if value is not None else "(설정 없음)",
+            value=value if value is not None else "(not configured)",
             status=status,
             excerpt=raw_line
         )
@@ -544,7 +544,7 @@ class U02Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     _yaml_import_error
                 )
             )
@@ -557,13 +557,13 @@ class U02Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -580,7 +580,7 @@ class U02Runner(object):
         if not filtered:
             return base_detail.strip()
 
-        merged = [base_detail.strip(), "", "판정 근거:"]
+        merged = [base_detail.strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -588,12 +588,12 @@ class U02Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-02",
-            name="비밀번호 관리정책 설정",
+            name="Configure Password Management Policy",
             severity="high",
             category="account_management",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=message,
             requires_root="partial"
         )

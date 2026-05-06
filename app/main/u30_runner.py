@@ -28,8 +28,8 @@ class U30Runner(object):
     기능:
     - /etc/profile의 umask 라인 확인
     - /etc/login.defs의 UMASK 값 확인
-    - 현재 세션 umask 수집
-    - 기준값 022 이상인지 권한 마스크 관점에서 판정
+    - current 세션 umask 수집
+    - criterion값 022 이상인지 권한 마스크 관점에서 판정
     """
 
     def __init__(self, check_dir=None):

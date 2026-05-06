@@ -20,7 +20,7 @@ from app.compat import to_text
 
 class U01Runner(object):
     """
-    U-01 root 계정 원격 접속 제한 점검 실행기
+    U-01 Restrict Remote root Login 점검 실행기
     """
 
     def __init__(self, check_dir=None):
@@ -43,18 +43,18 @@ class U01Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(exc)
+                "Failed to load configuration file: {0}".format(exc)
             )
 
         result = CheckResult(
             code=self.metadata.get("code", "U-01"),
-            name=self.metadata.get("name", "root 계정 원격 접속 제한"),
+            name=self.metadata.get("name", "Restrict Remote root Login"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "account_management"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="자동 판정이 어렵습니다."),
-            detail=self._get_message("manual", "detail", default="추가 확인이 필요합니다."),
+            summary=self._get_message("manual", "summary", default="Automatic determination is difficult."),
+            detail=self._get_message("manual", "detail", default="additional verification is required."),
             requires_root=self.metadata.get("requires_root", "partial"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=self.messages.get("remediation", {}).get("actions", []),
@@ -68,8 +68,8 @@ class U01Runner(object):
             "telnet": telnet_service.to_dict(),
         }
 
-        self._add_service_evidence(result, "ssh_service", "SSH 서비스 상태", ssh_service)
-        self._add_service_evidence(result, "telnet_service", "Telnet 계열 서비스 상태", telnet_service)
+        self._add_service_evidence(result, "ssh_service", "SSH service status", ssh_service)
+        self._add_service_evidence(result, "telnet_service", "Telnet-family service status", telnet_service)
 
         ssh_in_use = bool(ssh_service.active)
         telnet_in_use = bool(telnet_service.active)
@@ -93,16 +93,16 @@ class U01Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="root 계정의 원격 직접 접속이 차단되어 있습니다."
+                default="Direct remote login for the root account is blocked."
             )
             base_detail = self._get_message(
                 "pass",
                 "detail",
-                default="원격 터미널 서비스를 사용하지 않거나 root 직접 로그인이 차단되어 있습니다."
+                default="Remote terminal services are not used or direct root login is blocked."
             )
             result.detail = self._merge_detail(
                 base_detail,
-                ["SSH/Telnet 원격 터미널 서비스가 활성 상태가 아닙니다."]
+                ["SSH/Telnet remote terminal services are not active."]
             )
             result.raw["component_states"] = component_states
             return result
@@ -111,36 +111,36 @@ class U01Runner(object):
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail", "summary",
-                default="root 계정의 원격 직접 접속이 허용되어 있습니다."
+                default="Direct remote login for the root account is allowed."
             )
             base_detail = self._get_message(
                 "fail",
                 "detail",
-                default="현재 서버는 root 계정의 원격 직접 로그인을 허용하고 있습니다."
+                default="The current server allows direct remote login for the root account."
             )
             result.detail = self._merge_detail(base_detail, detail_reasons)
         elif "manual" in component_states or "error" in component_states:
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual", "summary",
-                default="자동 판정이 어렵습니다."
+                default="Automatic determination is difficult."
             )
             base_detail = self._get_message(
                 "manual",
                 "detail",
-                default="추가 확인이 필요합니다."
+                default="additional verification is required."
             )
             result.detail = self._merge_detail(base_detail, detail_reasons)
         else:
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="root 계정의 원격 직접 접속이 차단되어 있습니다."
+                default="Direct remote login for the root account is blocked."
             )
             base_detail = self._get_message(
                 "pass",
                 "detail",
-                default="원격 터미널 서비스를 사용하지 않거나, 사용 중인 서비스에서 root 직접 로그인이 제한되어 있습니다."
+                default="Remote terminal services are not used, or direct root login is restricted in the services in use."
             )
             result.detail = self._merge_detail(base_detail, detail_reasons)
 
@@ -149,27 +149,27 @@ class U01Runner(object):
 
     def _evaluate_ssh(self, result, ssh_in_use):
         if not ssh_in_use:
-            return "not_used", "SSH 서비스가 활성 상태가 아니므로 SSH 기준으로는 원격 root 접속이 노출되지 않습니다."
+            return "not_used", "The SSH service is not active, so remote root access is not exposed by the SSH criterion."
 
         ssh_paths = self._get_paths_by_parser("sshd_config")
         ssh_file = self._read_first_readable(ssh_paths)
 
         if ssh_file is None:
-            result.add_error("SSH 설정 파일을 찾지 못했습니다.")
-            return "manual", "SSH 서비스는 활성 상태지만 sshd_config 파일을 찾지 못해 수동 확인이 필요합니다."
+            result.add_error("SSH configuration file was not found.")
+            return "manual", "The SSH service is active, but sshd_config was not found, so manual verification is required."
 
         self._add_file_evidence(
             result,
             key="sshd_config_path",
-            label="실제 사용한 SSH 설정 파일",
+            label="Actual SSH configuration file used",
             source=ssh_file.path,
             value=ssh_file.path,
             status="ok" if ssh_file.success else ssh_file.status
         )
 
         if (not ssh_file.success) or (not ssh_file.content):
-            result.add_error("SSH 설정 파일 읽기 실패: {0}".format(ssh_file.path))
-            return "manual", "SSH 설정 파일을 읽지 못해 PermitRootLogin 값을 자동 판정할 수 없습니다."
+            result.add_error("Failed to read SSH configuration file: {0}".format(ssh_file.path))
+            return "manual", "SSH configuration file could not be read, so the PermitRootLogin value cannot be determined automatically."
 
         permit_value, permit_line = self._parse_sshd_key(
             ssh_file.content,
@@ -177,14 +177,14 @@ class U01Runner(object):
         )
         label = self.messages.get("evidence_labels", {}).get(
             "permit_root_login",
-            "sshd_config 내 PermitRootLogin 값"
+            "PermitRootLogin value in sshd_config"
         )
 
         result.add_evidence(
             key="permit_root_login",
             label=label,
             source=ssh_file.path,
-            value=permit_value if permit_value is not None else "(설정 없음)",
+            value=permit_value if permit_value is not None else "(not configured)",
             status="ok" if permit_value is not None else "manual",
             excerpt=permit_line
         )
@@ -198,41 +198,41 @@ class U01Runner(object):
         )
 
         if permit_value is None:
-            return "manual", "SSH 서비스는 활성 상태지만 PermitRootLogin 설정이 없어 기본값 해석이 필요합니다."
+            return "manual", "The SSH service is active, but PermitRootLogin is not configured, so the default value requires interpretation."
 
         normalized = permit_value.strip().lower()
 
         if normalized in acceptable_values:
             return "pass", (
-                "SSH 서비스 활성 상태에서 PermitRootLogin={0} 이므로 root 직접 로그인이 차단됩니다."
+                "SSH is active and PermitRootLogin={0}, so direct root login is blocked."
                 .format(permit_value)
             )
 
         if normalized in vulnerable_values:
             return "fail", (
-                "SSH 서비스 활성 상태에서 PermitRootLogin={0} 이므로 root 직접 로그인이 허용됩니다."
+                "SSH is active and PermitRootLogin={0}, so direct root login is allowed."
                 .format(permit_value)
             )
 
         return "manual", (
-            "SSH 서비스 활성 상태에서 PermitRootLogin={0} 이며 정책상 명확한 자동 판정이 어렵습니다."
+            "SSH is active and PermitRootLogin={0}, and the policy decision is unclear."
             .format(permit_value)
         )
 
     def _evaluate_telnet(self, result, telnet_in_use):
         if not telnet_in_use:
-            return "not_used", "Telnet 계열 서비스가 활성 상태가 아닙니다."
+            return "not_used", "Telnet-family services are not active."
 
         login_file = self.file_reader.read("/etc/pam.d/login")
         securetty_file = self.file_reader.read("/etc/securetty")
 
         pam_label = self.messages.get("evidence_labels", {}).get(
             "pam_securetty",
-            "/etc/pam.d/login 내 pam_securetty 적용 여부"
+            "Whether pam_securetty is applied in /etc/pam.d/login"
         )
         securetty_label = self.messages.get("evidence_labels", {}).get(
             "securetty_pts_entries",
-            "/etc/securetty 내 pts 허용 여부"
+            "Whether pts is allowed in /etc/securetty"
         )
 
         if login_file.success and login_file.content:
@@ -412,7 +412,7 @@ class U01Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     _yaml_import_error
                 )
             )
@@ -425,13 +425,13 @@ class U01Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -448,7 +448,7 @@ class U01Runner(object):
         if not filtered:
             return base_detail.strip()
 
-        merged = [base_detail.strip(), "", "판정 근거:"]
+        merged = [base_detail.strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -456,12 +456,12 @@ class U01Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-01",
-            name="root 계정 원격 접속 제한",
+            name="Restrict Remote root Login",
             severity="high",
             category="account_management",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=message,
             requires_root="partial"
         )

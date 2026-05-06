@@ -19,7 +19,7 @@ from app.models.check_result import CheckResult
 
 class U64Runner(object):
     """
-    U-64 주기적 보안 패치 및 벤더 권고사항 적용 점검 실행기
+    U-64 Apply Periodic Security Patches and Vendor Advisories 점검 실행기
     1차 구현:
     - 자동 업데이트 설정 흔적
     - 최근 패치 이력/로그 흔적
@@ -45,7 +45,7 @@ class U64Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(to_text(exc))
+                "Failed to load configuration file: {0}".format(to_text(exc))
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -53,13 +53,13 @@ class U64Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-64"),
-            name=self.metadata.get("name", "주기적 보안 패치 및 벤더 권고사항 적용"),
+            name=self.metadata.get("name", "Apply Periodic Security Patches and Vendor Advisories"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "patch_management"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="패치 관리 상태를 추가 확인해야 합니다."),
-            detail=self._get_message("manual", "detail", default="일부 설정 또는 로그는 존재하지만 실제로 주기적인 보안 패치 정책에 따라 관리되고 있는지 추가 검토가 필요합니다."),
+            summary=self._get_message("manual", "summary", default="Patch management status requires additional verification."),
+            detail=self._get_message("manual", "detail", default="Some settings or logs exist, but additional review is required to verify whether they are actually managed according to a periodic security patch policy."),
             requires_root=self.metadata.get("requires_root", "required"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -224,7 +224,7 @@ class U64Runner(object):
             key="os_version_info",
             label=self._label("os_version_info"),
             source="hostnamectl",
-            value=os_version_info if os_version_info else {"raw": "(수집 실패 또는 명령 없음)"},
+            value=os_version_info if os_version_info else {"raw": "(collection failed or command unavailable)"},
             status="ok" if os_version_info else "info",
             notes=self._command_note(hostnamectl_result)
         )
@@ -233,7 +233,7 @@ class U64Runner(object):
             key="kernel_version",
             label=self._label("kernel_version"),
             source="uname -r",
-            value=kernel_version if kernel_version else "(수집 실패 또는 명령 없음)",
+            value=kernel_version if kernel_version else "(collection failed or command unavailable)",
             status="ok" if kernel_version else "info",
             notes=self._command_note(uname_result)
         )
@@ -253,22 +253,22 @@ class U64Runner(object):
         reasons = []
 
         if config_signal:
-            reasons.append("자동 업데이트 또는 패치 설정 흔적이 확인됩니다.")
+            reasons.append("Automatic update or patch configuration traces were found.")
         else:
-            reasons.append("자동 업데이트 또는 패치 설정 흔적을 충분히 확인하지 못했습니다.")
+            reasons.append("Automatic update or patch configuration traces could not be sufficiently verified.")
 
         if history_signal:
-            reasons.append("최근 패치 이력 또는 자동 업데이트 로그가 확인됩니다.")
+            reasons.append("Recent patch history or automatic update logs were found.")
         else:
-            reasons.append("최근 패치 이력 또는 자동 업데이트 로그를 확인하지 못했습니다.")
+            reasons.append("Recent patch history or automatic update logs were not found.")
 
         if status_signal:
-            reasons.append("패키지 상태 또는 패치 관리 도구 흔적이 확인됩니다.")
+            reasons.append("Package status or patch management tool traces were found.")
         else:
-            reasons.append("패키지 상태 또는 패치 관리 도구 흔적을 충분히 확인하지 못했습니다.")
+            reasons.append("Package status or patch management tool traces could not be sufficiently verified.")
 
         if upgradable_package_count > 0:
-            reasons.append("현재 업그레이드 가능한 패키지가 {0}개 있습니다.".format(upgradable_package_count))
+            reasons.append("There are currently {0} upgradeable packages.".format(upgradable_package_count))
 
         minimum_positive_signals = self._get_minimum_positive_signals()
 
@@ -277,14 +277,14 @@ class U64Runner(object):
             result.set_status("ERROR", success=False)
             result.summary = self._get_message(
                 "error", "summary",
-                default="점검 실행 중 오류가 발생했습니다."
+                default="An error occurred while running the check."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "error", "detail",
-                    default="패치 설정 파일 또는 패키지 상태 수집 중 오류가 발생했습니다."
+                    default="An error occurred while collecting patch configuration files or package status."
                 ),
-                ["패치 관리 관련 파일과 명령 결과를 충분히 수집하지 못했습니다."]
+                ["Patch-management-related files and command results could not be collected sufficiently."]
             )
             return result
 
@@ -292,13 +292,13 @@ class U64Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="주기적 보안 패치 관리 흔적이 확인됩니다."
+                default="Periodic security patch management traces were found."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "pass",
                     "detail",
-                    default="자동 업데이트 설정, 최근 패치 이력, 패치 관리 도구 흔적 중 일부가 확인되어 보안 패치가 일정 수준 이상 관리되고 있습니다."
+                    default="Some automatic update settings, recent patch history, or patch management tool traces were found, indicating that security patches are managed at least to a certain level."
                 ),
                 reasons
             )
@@ -308,13 +308,13 @@ class U64Runner(object):
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail", "summary",
-                default="주기적 보안 패치 관리 흔적이 부족합니다."
+                default="Periodic security patch management traces are insufficient."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "fail",
                     "detail",
-                    default="최신 보안 패치가 적용되지 않아 이미 공개된 취약점을 이용한 침해사고 가능성이 높습니다."
+                    default="Because the latest security patches are not applied, the likelihood of an incident exploiting already disclosed vulnerabilities is high."
                 ),
                 reasons
             )
@@ -323,13 +323,13 @@ class U64Runner(object):
         result.set_status("MANUAL", success=True)
         result.summary = self._get_message(
             "manual", "summary",
-            default="패치 관리 상태를 추가 확인해야 합니다."
+            default="Patch management status requires additional verification."
         )
         result.detail = self._merge_detail(
             self._get_message(
                 "manual",
                 "detail",
-                default="일부 설정 또는 로그는 존재하지만 실제로 주기적인 보안 패치 정책에 따라 관리되고 있는지 추가 검토가 필요합니다."
+                default="Some settings or logs exist, but additional review is required to verify whether they are actually managed according to a periodic security patch policy."
             ),
             reasons
         )
@@ -404,7 +404,7 @@ class U64Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     to_text(_yaml_import_error)
                 )
             )
@@ -417,13 +417,13 @@ class U64Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -463,7 +463,7 @@ class U64Runner(object):
         if not filtered:
             return to_text(base_detail).strip()
 
-        merged = [to_text(base_detail).strip(), "", "판정 근거:"]
+        merged = [to_text(base_detail).strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -471,12 +471,12 @@ class U64Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-64",
-            name="주기적 보안 패치 및 벤더 권고사항 적용",
+            name="Apply Periodic Security Patches and Vendor Advisories",
             severity="high",
             category="patch_management",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=to_text(message),
             requires_root="required"
         )

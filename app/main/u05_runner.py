@@ -19,7 +19,7 @@ from app.models.check_result import CheckResult
 
 class U05Runner(object):
     """
-    U-05 root 이외의 UID가 0 금지 점검 실행기
+    U-05 Prohibit UID 0 Accounts Other Than root 점검 실행기
     """
 
     def __init__(self, check_dir=None):
@@ -41,7 +41,7 @@ class U05Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(to_text(exc))
+                "Failed to load configuration file: {0}".format(to_text(exc))
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -49,13 +49,13 @@ class U05Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-05"),
-            name=self.metadata.get("name", "root 이외의 UID가 0 금지"),
+            name=self.metadata.get("name", "Prohibit UID 0 Accounts Other Than root"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "account_management"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="자동 판정이 어렵습니다."),
-            detail=self._get_message("manual", "detail", default="추가 확인이 필요합니다."),
+            summary=self._get_message("manual", "summary", default="Automatic determination is difficult."),
+            detail=self._get_message("manual", "detail", default="additional verification is required."),
             requires_root=self.metadata.get("requires_root", "partial"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -77,18 +77,18 @@ class U05Runner(object):
         )
 
         if passwd_file is None or (not passwd_file.success) or (not passwd_file.content):
-            result.add_error("/etc/passwd 파일을 읽지 못했습니다.")
+            result.add_error("/etc/passwd file could not be read.")
             result.set_status("ERROR", success=False)
             result.summary = self._get_message(
                 "error", "summary",
-                default="점검 실행 중 오류가 발생했습니다."
+                default="An error occurred while running the check."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "error", "detail",
-                    default="필수 파일을 읽지 못했거나 점검에 필요한 정보 수집 중 오류가 발생했습니다."
+                    default="A required file could not be read, or an error occurred while collecting information needed for the check."
                 ),
-                ["/etc/passwd 파일을 읽지 못해 UID 0 계정을 판정할 수 없습니다."]
+                ["/etc/passwd could not be read, so UID 0 accounts cannot be evaluated."]
             )
             return result
 
@@ -106,7 +106,7 @@ class U05Runner(object):
             key="root_passwd_line",
             label=self._label("root_passwd_line"),
             source="/etc/passwd",
-            value=root_line if root_line is not None else "(root 계정 없음)",
+            value=root_line if root_line is not None else "(root account missing)",
             status="ok" if root_found else "manual",
             excerpt=root_line
         )
@@ -140,7 +140,7 @@ class U05Runner(object):
 
         if malformed_lines:
             reasons.append(
-                "/etc/passwd 내 형식이 비정상인 행이 존재합니다. (개수: {0})".format(
+                "Malformed lines exist in /etc/passwd. (count: {0})".format(
                     len(malformed_lines)
                 )
             )
@@ -149,32 +149,32 @@ class U05Runner(object):
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual", "summary",
-                default="자동 판정이 어렵습니다."
+                default="Automatic determination is difficult."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "manual", "detail",
-                    default="passwd 구조가 비정상적이거나 root 계정 식별이 어려워 추가 확인이 필요합니다."
+                    default="The passwd structure is abnormal or the root account is difficult to identify, additional verification is required."
                 ),
-                reasons + ["root 계정을 /etc/passwd 에서 찾지 못했습니다."]
+                reasons + ["The root account was not found in /etc/passwd."]
             )
             return result
 
         if uid_zero_non_root_accounts:
             reasons.append(
-                "root 외 UID 0 계정이 존재합니다: {0}".format(
+                "UID 0 accounts other than root exist: {0}".format(
                     ", ".join(uid_zero_non_root_accounts)
                 )
             )
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail", "summary",
-                default="root 외 UID가 0인 계정이 존재합니다."
+                default="A UID 0 account exists other than root."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "fail", "detail",
-                    default="root 외에 UID 0 계정이 존재하여 숨은 관리자 계정으로 악용될 수 있고, 감사 추적도 어려워집니다."
+                    default="A UID 0 account exists other than root and can be abused as a hidden administrator account, making audit tracking difficult."
                 ),
                 reasons
             )
@@ -184,14 +184,14 @@ class U05Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="root 외 UID가 0인 계정이 존재하지 않습니다."
+                default="No UID 0 account exists other than root."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "pass", "detail",
-                    default="UID가 0인 계정이 root 하나뿐이어서 숨은 관리자 계정에 의한 권한 위장 가능성이 낮습니다."
+                    default="Only root has UID 0, so the possibility of privilege impersonation through hidden administrator accounts is low."
                 ),
-                ["UID가 0인 계정이 root 하나뿐입니다."]
+                ["Only root has UID 0."]
             )
             return result
 
@@ -199,28 +199,28 @@ class U05Runner(object):
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual", "summary",
-                default="자동 판정이 어렵습니다."
+                default="Automatic determination is difficult."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "manual", "detail",
-                    default="passwd 구조가 비정상적이거나 root 계정 식별이 어려워 추가 확인이 필요합니다."
+                    default="The passwd structure is abnormal or the root account is difficult to identify, additional verification is required."
                 ),
-                ["UID가 0인 계정을 찾지 못했습니다. passwd 구조를 확인해야 합니다."]
+                ["No account with UID 0 was found. The passwd structure must be checked."]
             )
             return result
 
         result.set_status("MANUAL", success=True)
         result.summary = self._get_message(
             "manual", "summary",
-            default="자동 판정이 어렵습니다."
+            default="Automatic determination is difficult."
         )
         result.detail = self._merge_detail(
             self._get_message(
                 "manual", "detail",
-                default="추가 확인이 필요합니다."
+                default="additional verification is required."
             ),
-            reasons if reasons else ["UID 0 계정 구조를 추가 확인해야 합니다."]
+            reasons if reasons else ["UID 0 account structure requires additional verification."]
         )
         return result
 
@@ -281,7 +281,7 @@ class U05Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     to_text(_yaml_import_error)
                 )
             )
@@ -294,13 +294,13 @@ class U05Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -340,7 +340,7 @@ class U05Runner(object):
         if not filtered:
             return to_text(base_detail).strip()
 
-        merged = [to_text(base_detail).strip(), "", "판정 근거:"]
+        merged = [to_text(base_detail).strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -348,12 +348,12 @@ class U05Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-05",
-            name="root 이외의 UID가 0 금지",
+            name="Prohibit UID 0 Accounts Other Than root",
             severity="high",
             category="account_management",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=to_text(message),
             requires_root="partial"
         )

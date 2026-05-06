@@ -19,7 +19,7 @@ from app.models.check_result import CheckResult
 
 class U28Runner(object):
     """
-    U-28 접속 IP 및 포트 제한 점검 실행기
+    U-28 Restrict Access by IP and Port 점검 실행기
     1차 구현:
     - hosts.allow / hosts.deny 규칙 흔적
     - iptables / firewalld / ufw 정책 흔적
@@ -46,7 +46,7 @@ class U28Runner(object):
             self._load_configs()
         except Exception as exc:
             return self._build_error_result(
-                "설정 파일 로딩 실패: {0}".format(to_text(exc))
+                "Failed to load configuration file: {0}".format(to_text(exc))
             )
 
         raw_steps = self.messages.get("remediation", {}).get("actions", [])
@@ -54,13 +54,13 @@ class U28Runner(object):
 
         result = CheckResult(
             code=self.metadata.get("code", "U-28"),
-            name=self.metadata.get("name", "접속 IP 및 포트 제한"),
+            name=self.metadata.get("name", "Restrict Access by IP and Port"),
             severity=self.metadata.get("severity", "high"),
             category=self.metadata.get("category", "network_security"),
             status="MANUAL",
             success=True,
-            summary=self._get_message("manual", "summary", default="접속 제한 정책을 추가 확인해야 합니다."),
-            detail=self._get_message("manual", "detail", default="관련 설정 또는 방화벽 흔적은 존재하지만 실제 허용 IP 및 포트 제한이 충분한지 추가 검토가 필요합니다."),
+            summary=self._get_message("manual", "summary", default="The access restriction policy requires additional verification."),
+            detail=self._get_message("manual", "detail", default="Related settings or firewall traces exist, but additional review is required to verify whether allowed IP and port restrictions are sufficient."),
             requires_root=self.metadata.get("requires_root", "required"),
             remediation_summary=self.messages.get("remediation", {}).get("summary"),
             remediation_steps=remediation_steps
@@ -181,7 +181,7 @@ class U28Runner(object):
             key="ssh_port",
             label=self._label("ssh_port"),
             source="/etc/ssh/sshd_config",
-            value=ssh_ports if ssh_ports else ["(설정 없음)"],
+            value=ssh_ports if ssh_ports else ["(not configured)"],
             status="ok" if ssh_ports else "info"
         )
 
@@ -189,7 +189,7 @@ class U28Runner(object):
             key="ssh_listen_address",
             label=self._label("ssh_listen_address"),
             source="/etc/ssh/sshd_config",
-            value=ssh_listen_addresses if ssh_listen_addresses else ["(설정 없음)"],
+            value=ssh_listen_addresses if ssh_listen_addresses else ["(not configured)"],
             status="ok" if ssh_listen_addresses else "info"
         )
 
@@ -205,36 +205,36 @@ class U28Runner(object):
         reasons = []
 
         if tcp_wrapper_control_present:
-            reasons.append("hosts.allow 또는 hosts.deny 에 서비스 접근 제한 규칙이 존재합니다.")
+            reasons.append("Service access restriction rules exist in hosts.allow or hosts.deny.")
 
         if iptables_policy_present:
-            reasons.append("iptables 정책 흔적이 확인됩니다.")
+            reasons.append("iptables policy traces were found.")
 
         if firewalld_policy_present:
-            reasons.append("firewalld 정책 흔적이 확인됩니다.")
+            reasons.append("firewalld policy traces were found.")
 
         if ufw_policy_present:
-            reasons.append("UFW 정책 흔적이 확인됩니다.")
+            reasons.append("UFW policy traces were found.")
 
         if ssh_control_present:
             if ssh_listen_addresses:
-                reasons.append("sshd_config 에 ListenAddress 제한이 설정되어 있습니다.")
+                reasons.append("ListenAddress restriction is configured in sshd_config.")
             elif ssh_ports:
-                reasons.append("sshd_config 에 비기본 SSH 포트 설정이 존재합니다.")
+                reasons.append("A non-default SSH port setting exists in sshd_config.")
 
         alt_platform_present = self._has_alt_platform_files(file_map)
         if alt_platform_present and not (tcp_wrapper_control_present or firewall_policy_present or ssh_control_present):
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual", "summary",
-                default="접속 제한 정책을 추가 확인해야 합니다."
+                default="The access restriction policy requires additional verification."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "manual", "detail",
-                    default="관련 설정 또는 방화벽 흔적은 존재하지만 실제 허용 IP 및 포트 제한이 충분한지 추가 검토가 필요합니다."
+                    default="Related settings or firewall traces exist, but additional review is required to verify whether allowed IP and port restrictions are sufficient."
                 ),
-                ["Linux 표준 파일 외 대체 접근통제 파일이 존재하여 수동 확인이 필요합니다."]
+                ["Alternative access control files outside standard Linux files exist, so manual verification is required."]
             )
             return result
 
@@ -245,13 +245,13 @@ class U28Runner(object):
             result.set_status("PASS", success=True)
             result.summary = self._get_message(
                 "pass", "summary",
-                default="접속 IP 또는 포트 제한 정책이 확인됩니다."
+                default="An access IP or port restriction policy was found."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "pass",
                     "detail",
-                    default="허용된 호스트 또는 포트만 접근하도록 제한하는 정책 흔적이 확인되어 서비스 외부 노출 범위가 통제되고 있습니다."
+                    default="Policy traces restricting access to allowed hosts or ports were found, so external service exposure is controlled."
                 ),
                 reasons
             )
@@ -259,28 +259,28 @@ class U28Runner(object):
 
         if collectable:
             fail_reasons = [
-                "허용 IP 또는 허용 포트 제한 정책 흔적을 확인하지 못했습니다."
+                "Allowed IP or allowed port restriction policy traces were not found."
             ]
 
             if not hosts_allow_rules and not hosts_deny_rules:
-                fail_reasons.append("hosts.allow / hosts.deny 에 유효 규칙이 없습니다.")
+                fail_reasons.append("No valid rules exist in hosts.allow / hosts.deny.")
 
             if not firewall_policy_present:
-                fail_reasons.append("iptables, firewalld, UFW 정책 흔적을 확인하지 못했습니다.")
+                fail_reasons.append("iptables, firewalld, or UFW policy traces were not found.")
 
             if not ssh_control_present:
-                fail_reasons.append("sshd_config 에 ListenAddress 또는 비기본 포트 제한 흔적이 없습니다.")
+                fail_reasons.append("No ListenAddress or non-default port restriction traces exist in sshd_config.")
 
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail", "summary",
-                default="접속 IP 및 포트 제한 정책이 확인되지 않습니다."
+                default="No access IP or port restriction policy was found."
             )
             result.detail = self._merge_detail(
                 self._get_message(
                     "fail",
                     "detail",
-                    default="서비스가 허용 IP 없이 전체에 노출되어 있어, SSH·FTP·Telnet 등 취약 서비스로 비인가 접근이 발생할 수 있습니다."
+                    default="Services are exposed without allowed IP restrictions, so unauthorized access may occur through vulnerable services such as SSH, FTP, or Telnet."
                 ),
                 fail_reasons
             )
@@ -289,14 +289,14 @@ class U28Runner(object):
         result.set_status("ERROR", success=False)
         result.summary = self._get_message(
             "error", "summary",
-            default="점검 실행 중 오류가 발생했습니다."
+            default="An error occurred while running the check."
         )
         result.detail = self._merge_detail(
             self._get_message(
                 "error", "detail",
-                default="접근 통제 파일 또는 방화벽 정책 수집 중 오류가 발생했습니다."
+                default="An error occurred while collecting access control files or firewall policies."
             ),
-            ["접근 통제 관련 파일과 명령 결과를 충분히 수집하지 못했습니다."]
+            ["Access-control-related files and command results could not be collected sufficiently."]
         )
         return result
 
@@ -439,7 +439,7 @@ class U28Runner(object):
     def _load_configs(self):
         if yaml is None:
             raise RuntimeError(
-                "PyYAML이 필요합니다. 설치 후 다시 실행하세요. 원인: {0}".format(
+                "PyYAML is required. Install it and run again. Cause: {0}".format(
                     to_text(_yaml_import_error)
                 )
             )
@@ -452,13 +452,13 @@ class U28Runner(object):
     @staticmethod
     def _load_yaml(path):
         if not os.path.exists(path):
-            raise IOError("설정 파일을 찾을 수 없습니다: {0}".format(path))
+            raise IOError("Configuration file not found: {0}".format(path))
 
         with io.open(path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
 
         if not isinstance(data, dict):
-            raise ValueError("YAML 최상위 구조는 dict 여야 합니다: {0}".format(path))
+            raise ValueError("The top-level YAML structure must be a dict: {0}".format(path))
 
         return data
 
@@ -498,7 +498,7 @@ class U28Runner(object):
         if not filtered:
             return to_text(base_detail).strip()
 
-        merged = [to_text(base_detail).strip(), "", "판정 근거:"]
+        merged = [to_text(base_detail).strip(), "", "Decision reasons:"]
         for reason in filtered:
             merged.append("- {0}".format(reason))
         return "\n".join(merged)
@@ -506,12 +506,12 @@ class U28Runner(object):
     def _build_error_result(self, message):
         result = CheckResult(
             code="U-28",
-            name="접속 IP 및 포트 제한",
+            name="Restrict Access by IP and Port",
             severity="high",
             category="network_security",
             status="ERROR",
             success=False,
-            summary="점검 실행 중 오류가 발생했습니다.",
+            summary="An error occurred while running the check.",
             detail=to_text(message),
             requires_root="required"
         )

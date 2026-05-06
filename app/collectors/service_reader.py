@@ -137,7 +137,7 @@ class ServiceReader(object):
                 fragment_path=None,
                 status="systemd_unavailable",
                 success=False,
-                message="systemctl을 사용할 수 없는 환경입니다.",
+                message="systemctl is not available in this environment.",
                 error_type="SystemdUnavailableError",
                 evidence={"checked_candidates": []},
             )
@@ -181,7 +181,7 @@ class ServiceReader(object):
                     fragment_path=fragment_path or None,
                     status="ok",
                     success=True,
-                    message="서비스 상태 확인에 성공했습니다.",
+                    message="Service status check succeeded.",
                     evidence=last_evidence,
                 )
 
@@ -200,7 +200,7 @@ class ServiceReader(object):
             fragment_path=None,
             status="not_found",
             success=False,
-            message="해당 서비스 유닛을 찾지 못했습니다.",
+            message="The service unit was not found.",
             error_type="ServiceNotFoundError",
             evidence=last_evidence,
         )

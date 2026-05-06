@@ -1,20 +1,20 @@
 code: "U-03"
-name: "계정 잠금 임계값 설정"
+name: "Configure Account Lockout Threshold"
 severity: "high"
 category: "account_management"
 requires_root: "required"
 
 summary: >
-  로그인 실패가 반복될 경우 계정을 잠가
-  brute force 및 dictionary 공격을 무력화하기 위한 항목이다.
+  This item locks accounts when login failures are repeated
+  to neutralize brute-force and dictionary attacks.
 
 description: >
-  계정 잠금 임계값, 잠금 해제 시간, PAM 인증 모듈 적용 여부를 점검하여
-  로그인 실패 누적에 따른 자동 방어 정책이 설정되어 있는지 확인한다.
+  It checks the account lockout threshold, unlock duration, and whether PAM authentication modules are applied
+  to verify whether an automatic defense policy for accumulated login failures is configured.
 
 purpose: >
-  로그인 실패 횟수를 제한하여 공격자가 무제한으로 비밀번호를 시도하지 못하도록 하고,
-  계정 탈취 시도를 조기에 차단한다.
+  Limit login failures so attackers cannot try passwords without limit,
+  and block account compromise attempts early.
 
 platform: "debian_family"
 
