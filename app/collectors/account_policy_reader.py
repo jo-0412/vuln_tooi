@@ -49,6 +49,7 @@ class AccountPolicyReader(object):
     - /etc/sudoers include 구조 파싱
     - /etc/sudoers.d 파일 목록 수집
     - sudoers 관련 경로 메타데이터 확인
+    - sudoers 정책 내용에서 위험 규칙 탐지
     """
 
     def __init__(self):
@@ -863,13 +864,6 @@ class AccountPolicyReader(object):
         - sudoers에서는 '#includedir'처럼 #으로 시작해도 주석이 아니라 지시문일 수 있다.
         - 일반 설정 파일처럼 '#' 라인을 모두 제거하면 안 된다.
         - @include, @includedir, #include, #includedir 모두 수집한다.
-
-        반환:
-        {
-            "include_lines": [...],
-            "include_dirs": [...],
-            "include_files": [...]
-        }
         """
         include_lines = []
         include_dirs = []
@@ -914,15 +908,6 @@ class AccountPolicyReader(object):
     def list_sudoers_d_files(self, directory="/etc/sudoers.d"):
         """
         /etc/sudoers.d 하위 파일 목록과 메타데이터를 수집한다.
-
-        기능:
-        - 디렉터리가 없으면 exists=False 반환
-        - 파일마다 owner, group, mode를 inspect_file()로 수집
-        - README처럼 일부 배포판에서 제공되는 설명 파일도 evidence로 남긴다.
-
-        차별점:
-        - sudoers.d 파일 내용까지 깊게 판정하지 않고 1차 구현에서는 권한 증적 중심으로 수집한다.
-        - 상세 sudo 정책 분석은 이후 확장할 수 있다.
         """
         directory = to_text(directory).strip() or "/etc/sudoers.d"
 
@@ -966,6 +951,316 @@ class AccountPolicyReader(object):
                 )
 
         return result
+
+    # ============================================================
+    # U-63: sudoers 정책 내용 분석
+    # ============================================================
+
+    def parse_sudoers_policy_lines(self, content):
+        """
+        sudoers 파일에서 실제 정책 라인만 추출한다.
+
+        기능:
+        - 빈 줄 제거
+        - 일반 주석 제거
+        - #includedir, #include는 sudoers에서 실제 지시문이므로 별도 보존
+        - Defaults, User_Alias, Cmnd_Alias 같은 보조 라인도 구분
+        - 실제 권한 부여 규칙 라인을 rule_lines로 분리
+        """
+        active_lines = []
+        include_lines = []
+        defaults_lines = []
+        alias_lines = []
+        rule_lines = []
+
+        for raw_line in to_text(content).splitlines():
+            line = raw_line.strip()
+
+            if not line:
+                continue
+
+            lowered = line.lower()
+
+            if (
+                lowered.startswith("#includedir") or
+                lowered.startswith("#include") or
+                lowered.startswith("@includedir") or
+                lowered.startswith("@include")
+            ):
+                include_lines.append(line)
+                active_lines.append(line)
+                continue
+
+            if line.startswith("#"):
+                continue
+
+            if "#" in line:
+                line = line.split("#", 1)[0].strip()
+
+            if not line:
+                continue
+
+            active_lines.append(line)
+
+            if line.startswith("Defaults"):
+                defaults_lines.append(line)
+                continue
+
+            if "_Alias" in line:
+                alias_lines.append(line)
+                continue
+
+            rule_lines.append(line)
+
+        return {
+            "active_lines": active_lines,
+            "include_lines": include_lines,
+            "defaults_lines": defaults_lines,
+            "alias_lines": alias_lines,
+            "rule_lines": rule_lines,
+        }
+
+    def analyze_sudoers_risky_rules(self, content, source="/etc/sudoers"):
+        """
+        sudoers 정책에서 위험한 권한 부여 규칙을 탐지한다.
+
+        FAIL로 보는 대표 규칙:
+        - ALL ALL=(ALL) ALL
+        - ALL ALL=(ALL:ALL) ALL
+        - NOPASSWD: ALL
+
+        MANUAL로 보는 대표 규칙:
+        - NOPASSWD가 있으나 명령이 제한되어 있는 경우
+        - Alias 기반 복잡한 규칙
+        """
+        parsed = self.parse_sudoers_policy_lines(content)
+
+        risky_rules = []
+        manual_rules = []
+
+        for line in parsed.get("rule_lines", []):
+            normalized = self._normalize_sudoers_rule(line)
+            upper_line = normalized.upper()
+
+            if self._is_all_users_full_sudo_rule(upper_line):
+                risky_rules.append({
+                    "source": source,
+                    "line": line,
+                    "reason": "all_users_full_sudo",
+                    "description": "All users are allowed to run all commands through sudo.",
+                })
+                continue
+
+            if self._has_nopasswd_all(upper_line):
+                risky_rules.append({
+                    "source": source,
+                    "line": line,
+                    "reason": "nopasswd_all",
+                    "description": "Passwordless execution of all commands is allowed.",
+                })
+                continue
+
+            if "NOPASSWD" in upper_line:
+                manual_rules.append({
+                    "source": source,
+                    "line": line,
+                    "reason": "limited_nopasswd_requires_review",
+                    "description": "NOPASSWD is used, but the command scope requires manual review.",
+                })
+                continue
+
+            if self._looks_like_alias_based_rule(upper_line):
+                manual_rules.append({
+                    "source": source,
+                    "line": line,
+                    "reason": "alias_based_rule_requires_review",
+                    "description": "Alias-based sudo rule requires manual review.",
+                })
+                continue
+
+        return {
+            "source": source,
+            "policy_lines": parsed,
+            "risky_rules": risky_rules,
+            "manual_rules": manual_rules,
+        }
+
+    def analyze_sudoers_d_policy_files(self, directory="/etc/sudoers.d"):
+        """
+        /etc/sudoers.d 하위 파일들의 권한과 정책 내용을 함께 분석한다.
+
+        기능:
+        - README, 숨김 파일은 기본적으로 정책 분석 대상에서 제외
+        - 일반 파일만 읽고 분석
+        - 파일 권한과 별도로 sudo 정책 위험 규칙을 탐지
+        """
+        directory = to_text(directory).strip() or "/etc/sudoers.d"
+
+        result = {
+            "directory": directory,
+            "exists": os.path.isdir(directory),
+            "items": [],
+            "risky_rules": [],
+            "manual_rules": [],
+            "errors": [],
+        }
+
+        if not result["exists"]:
+            return result
+
+        try:
+            names = os.listdir(directory)
+        except Exception as exc:
+            result["errors"].append(to_text(exc))
+            return result
+
+        for name in sorted(names):
+            name_text = to_text(name).strip()
+
+            if not name_text:
+                continue
+
+            if name_text.startswith("."):
+                continue
+
+            path = os.path.join(directory, name_text)
+
+            if name_text.upper() == "README":
+                metadata = self.inspect_file(path)
+                result["items"].append({
+                    "path": path,
+                    "name": name_text,
+                    "skipped": True,
+                    "skip_reason": "README file",
+                    "metadata": metadata,
+                    "risky_rules": [],
+                    "manual_rules": [],
+                })
+                continue
+
+            metadata = self.inspect_file(path)
+
+            if not metadata.get("exists"):
+                continue
+
+            if not metadata.get("is_regular_file"):
+                result["items"].append({
+                    "path": path,
+                    "name": name_text,
+                    "skipped": True,
+                    "skip_reason": "not a regular file",
+                    "metadata": metadata,
+                    "risky_rules": [],
+                    "manual_rules": [],
+                })
+                continue
+
+            file_result = self.read_file(path)
+
+            item = {
+                "path": path,
+                "name": name_text,
+                "skipped": False,
+                "metadata": metadata,
+                "readable": False,
+                "risky_rules": [],
+                "manual_rules": [],
+                "active_policy_line_count": 0,
+            }
+
+            if not self.file_exists(file_result):
+                item["readable"] = False
+                item["error"] = "file does not exist"
+                result["errors"].append("{0}: file does not exist".format(path))
+                result["items"].append(item)
+                continue
+
+            if not file_result.success:
+                item["readable"] = False
+                item["error"] = "file could not be read"
+                result["errors"].append("{0}: file could not be read".format(path))
+                result["items"].append(item)
+                continue
+
+            item["readable"] = True
+
+            analysis = self.analyze_sudoers_risky_rules(
+                file_result.content,
+                source=path
+            )
+
+            item["risky_rules"] = analysis.get("risky_rules", [])
+            item["manual_rules"] = analysis.get("manual_rules", [])
+            item["active_policy_line_count"] = len(
+                analysis.get("policy_lines", {}).get("rule_lines", [])
+            )
+
+            result["risky_rules"].extend(item["risky_rules"])
+            result["manual_rules"].extend(item["manual_rules"])
+            result["items"].append(item)
+
+        return result
+
+    @staticmethod
+    def _normalize_sudoers_rule(line):
+        """
+        sudoers 규칙 비교를 쉽게 하기 위해 공백을 정규화한다.
+        """
+        text = to_text(line).strip()
+        text = text.replace("\t", " ")
+
+        while "  " in text:
+            text = text.replace("  ", " ")
+
+        return text
+
+    @staticmethod
+    def _is_all_users_full_sudo_rule(upper_line):
+        """
+        ALL ALL=(ALL) ALL 또는 ALL ALL=(ALL:ALL) ALL 형태 탐지.
+        """
+        text = upper_line.replace(" ", "")
+
+        dangerous_patterns = [
+            "ALLALL=(ALL)ALL",
+            "ALLALL=(ALL:ALL)ALL",
+        ]
+
+        for pattern in dangerous_patterns:
+            if pattern in text:
+                return True
+
+        return False
+
+    @staticmethod
+    def _has_nopasswd_all(upper_line):
+        """
+        NOPASSWD: ALL 형태 탐지.
+        """
+        text = upper_line.replace(" ", "")
+
+        if "NOPASSWD:ALL" in text:
+            return True
+
+        return False
+
+    @staticmethod
+    def _looks_like_alias_based_rule(upper_line):
+        """
+        Alias 기반 규칙으로 보이는 경우 수동 검토 대상으로 분류한다.
+        """
+        alias_markers = [
+            "USER_ALIAS",
+            "RUNAS_ALIAS",
+            "HOST_ALIAS",
+            "CMND_ALIAS",
+        ]
+
+        for marker in alias_markers:
+            if marker in upper_line:
+                return True
+
+        return False
 
     # ============================================================
     # 공통 유틸

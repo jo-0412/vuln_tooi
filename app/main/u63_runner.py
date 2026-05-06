@@ -25,18 +25,13 @@ class U63Runner(object):
     사용자 출력: 영어
     Python 2.7 ~ 3.x 호환
 
-    기능:
-    - /etc/sudoers 존재 여부 확인
-    - /etc/sudoers 소유자 root 여부 확인
-    - /etc/sudoers 권한이 0640 이하인지 확인
-    - sudoers include 구조 수집
-    - /etc/sudoers.d 디렉터리 메타데이터 수집
-    - /etc/sudoers.d 파일 목록 수집
-
-    차별점:
-    - 이번 1차 구현은 sudo 정책 내용 전체 분석보다
-      KISA 기준에 가까운 sudoers 파일 소유자/권한 점검에 집중한다.
-    - include 구조와 sudoers.d 파일은 자동 FAIL보다는 추가 검토용 evidence로 남긴다.
+    개선된 기능:
+    - /etc/sudoers 소유자/권한 확인
+    - /etc/sudoers include 구조 확인
+    - /etc/sudoers.d 파일 권한 확인
+    - /etc/sudoers.d 파일 내용 분석
+    - 위험 sudo 규칙 탐지
+    - 위험 규칙이 없으면 include 구조가 있어도 PASS 가능
     """
 
     def __init__(self, check_dir=None):
@@ -121,6 +116,9 @@ class U63Runner(object):
 
         sudoers_d_metadata = self.reader.inspect_file(sudoers_d_path)
         sudoers_d_files = self.reader.list_sudoers_d_files(sudoers_d_path)
+        sudoers_d_policy_analysis = self.reader.analyze_sudoers_d_policy_files(
+            sudoers_d_path
+        )
 
         include_info = {
             "include_lines": [],
@@ -128,16 +126,35 @@ class U63Runner(object):
             "include_files": [],
         }
 
+        main_sudoers_analysis = {
+            "source": sudoers_path,
+            "policy_lines": {
+                "active_lines": [],
+                "include_lines": [],
+                "defaults_lines": [],
+                "alias_lines": [],
+                "rule_lines": [],
+            },
+            "risky_rules": [],
+            "manual_rules": [],
+        }
+
         if self.reader.file_exists(sudoers_file) and sudoers_file.success and sudoers_file.content:
             include_info = self.reader.parse_sudoers_include_lines(
                 sudoers_file.content
+            )
+            main_sudoers_analysis = self.reader.analyze_sudoers_risky_rules(
+                sudoers_file.content,
+                source=sudoers_path
             )
 
         result.raw["sudoers_metadata"] = sudoers_metadata
         result.raw["sudoers_file"] = sudoers_file.to_dict() if sudoers_file else None
         result.raw["sudoers_include_info"] = include_info
+        result.raw["main_sudoers_policy_analysis"] = main_sudoers_analysis
         result.raw["sudoers_d_metadata"] = sudoers_d_metadata
         result.raw["sudoers_d_files"] = sudoers_d_files
+        result.raw["sudoers_d_policy_analysis"] = sudoers_d_policy_analysis
 
         sudoers_exists = bool(sudoers_metadata.get("exists"))
         owner_name = to_text(sudoers_metadata.get("owner_name", ""))
@@ -155,16 +172,16 @@ class U63Runner(object):
 
         permission_ok = sudoers_exists and owner_ok and mode_ok
 
-        violations = []
+        sudoers_violations = []
 
         if not sudoers_exists:
-            violations.append({
+            sudoers_violations.append({
                 "path": sudoers_path,
                 "reason": "file_missing",
             })
         else:
             if not owner_ok:
-                violations.append({
+                sudoers_violations.append({
                     "path": sudoers_path,
                     "reason": "owner_not_allowed",
                     "current_owner": owner_name,
@@ -172,17 +189,29 @@ class U63Runner(object):
                 })
 
             if not mode_ok:
-                violations.append({
+                sudoers_violations.append({
                     "path": sudoers_path,
                     "reason": "mode_too_permissive",
                     "mode_octal": mode_octal,
                     "max_mode_octal": max_mode,
                 })
 
-        sudoers_d_review_items = self._evaluate_sudoers_d_files(
+        sudoers_d_permission_violations = self._evaluate_sudoers_d_file_permissions(
             sudoers_d_files,
             max_mode=max_mode
         )
+
+        risky_rules = []
+        manual_rules = []
+
+        risky_rules.extend(main_sudoers_analysis.get("risky_rules", []))
+        risky_rules.extend(sudoers_d_policy_analysis.get("risky_rules", []))
+
+        manual_rules.extend(main_sudoers_analysis.get("manual_rules", []))
+        manual_rules.extend(sudoers_d_policy_analysis.get("manual_rules", []))
+
+        analysis_errors = []
+        analysis_errors.extend(sudoers_d_policy_analysis.get("errors", []))
 
         result.add_evidence(
             key="sudoers_file_exists",
@@ -225,7 +254,7 @@ class U63Runner(object):
                 "group_ok": group_ok,
                 "mode_ok": mode_ok,
                 "permission_ok": permission_ok,
-                "violations": violations,
+                "violations": sudoers_violations,
             },
             status="ok" if permission_ok else "fail"
         )
@@ -235,8 +264,8 @@ class U63Runner(object):
             label=self._label("sudoers_include_structure", "sudoers include structure"),
             source=sudoers_path,
             value=include_info,
-            status="manual" if include_info.get("include_lines") else "ok",
-            notes="Include directives are not automatically vulnerable, but included files should be reviewed."
+            status="ok",
+            notes="Include directives were parsed and included sudoers.d files were analyzed."
         )
 
         result.add_evidence(
@@ -246,31 +275,69 @@ class U63Runner(object):
             value={
                 "directory_metadata": self._compact_metadata(sudoers_d_metadata),
                 "files": sudoers_d_files.get("files", []),
-                "errors": sudoers_d_files.get("errors", []),
-                "review_items": sudoers_d_review_items,
+                "permission_violations": sudoers_d_permission_violations,
+                "analysis_errors": analysis_errors,
             },
-            status="manual" if sudoers_d_files.get("exists") else "ok",
-            notes="sudoers.d is optional. If it is used, included files should also be reviewed."
+            status="fail" if sudoers_d_permission_violations else (
+                "manual" if analysis_errors else "ok"
+            ),
+            notes="sudoers.d files are analyzed for ownership, permissions, and risky sudo rules."
+        )
+
+        result.add_evidence(
+            key="sudoers_policy_rules",
+            label="sudoers policy rule analysis",
+            source="/etc/sudoers, /etc/sudoers.d",
+            value={
+                "main_sudoers_rule_count": len(
+                    main_sudoers_analysis.get("policy_lines", {}).get("rule_lines", [])
+                ),
+                "sudoers_d_items": self._compact_sudoers_d_analysis(
+                    sudoers_d_policy_analysis
+                ),
+                "risky_rules": risky_rules,
+                "manual_rules": manual_rules,
+            },
+            status="fail" if risky_rules else (
+                "manual" if manual_rules else "ok"
+            ),
+            notes="Risky rules such as NOPASSWD: ALL or ALL ALL=(ALL) ALL are detected automatically."
         )
 
         reasons = []
 
-        if violations:
+        if sudoers_violations:
             reasons.append(
                 "/etc/sudoers ownership or permission does not meet the policy."
             )
 
-        if include_info.get("include_lines"):
+        if sudoers_d_permission_violations:
             reasons.append(
-                "sudoers include directives were detected and included files may require additional review."
+                "Some sudoers.d files have unsafe ownership or permissions."
             )
 
-        if sudoers_d_review_items:
+        if risky_rules:
             reasons.append(
-                "sudoers.d files exist and require review."
+                "Risky sudo policy rules were detected."
             )
 
-        if violations:
+        if manual_rules:
+            reasons.append(
+                "Some sudo policy rules require manual review."
+            )
+
+        if analysis_errors:
+            reasons.append(
+                "Some sudoers.d files could not be analyzed."
+            )
+
+        if include_info.get("include_lines") and not risky_rules and not manual_rules and not analysis_errors:
+            reasons.append(
+                "sudoers include directives were detected, but included files did not contain risky rules."
+            )
+
+        # 1. /etc/sudoers 자체 권한 문제 또는 sudoers.d 권한 문제는 FAIL
+        if sudoers_violations or sudoers_d_permission_violations:
             result.set_status("FAIL", success=False)
             result.summary = self._get_message(
                 "fail",
@@ -287,7 +354,18 @@ class U63Runner(object):
             )
             return result
 
-        if include_info.get("include_lines") or sudoers_d_review_items:
+        # 2. 위험 sudo 규칙도 FAIL
+        if risky_rules:
+            result.set_status("FAIL", success=False)
+            result.summary = "Risky sudo policy rules were detected."
+            result.detail = self._merge_detail(
+                "Risky sudo rules may allow unauthorized or passwordless privilege escalation.",
+                reasons
+            )
+            return result
+
+        # 3. 제한적 NOPASSWD, 읽기 실패 등은 MANUAL
+        if manual_rules or analysis_errors:
             result.set_status("MANUAL", success=True)
             result.summary = self._get_message(
                 "manual",
@@ -298,12 +376,13 @@ class U63Runner(object):
                 self._get_message(
                     "manual",
                     "detail",
-                    default="The main sudoers file is protected, but include structures or sudoers.d configurations may require additional review."
+                    default="Some sudo policy rules or included files require manual review."
                 ),
                 reasons
             )
             return result
 
+        # 4. include 구조가 있어도 분석 결과 문제가 없으면 PASS
         result.set_status("PASS", success=True)
         result.summary = self._get_message(
             "pass",
@@ -316,21 +395,19 @@ class U63Runner(object):
                 "detail",
                 default="The sudoers policy file is owned by root and has restrictive permissions."
             ),
-            [
-                "/etc/sudoers is owned by root and has permissions of {0} or more restrictive.".format(
-                    max_mode
-                )
+            reasons if reasons else [
+                "/etc/sudoers and included sudoers.d files are protected and no risky sudo rules were detected."
             ]
         )
         return result
 
-    def _evaluate_sudoers_d_files(self, sudoers_d_files, max_mode):
+    def _evaluate_sudoers_d_file_permissions(self, sudoers_d_files, max_mode):
         """
-        /etc/sudoers.d 파일들을 검토 대상으로 정리한다.
+        /etc/sudoers.d 파일 권한을 평가한다.
 
-        1차 구현에서는 자동 FAIL로 보지 않고 manual review item으로만 남긴다.
+        README는 설명 파일이므로 자동 취약 판단에서 제외한다.
         """
-        review_items = []
+        violations = []
 
         for item in sudoers_d_files.get("files", []):
             path = to_text(item.get("path", ""))
@@ -339,25 +416,31 @@ class U63Runner(object):
             if not path:
                 continue
 
+            if name.upper() == "README":
+                continue
+
             if name.startswith("."):
                 continue
 
-            mode = to_text(item.get("mode_octal", ""))
             owner = to_text(item.get("owner_name", ""))
+            mode = to_text(item.get("mode_octal", ""))
 
-            mode_ok = self.reader.is_mode_at_most(mode, max_mode)
-            owner_ok = owner == "root"
+            if owner != "root":
+                violations.append({
+                    "path": path,
+                    "reason": "owner_not_root",
+                    "owner_name": owner,
+                })
 
-            review_items.append({
-                "path": path,
-                "owner_name": owner,
-                "mode_octal": mode,
-                "owner_ok": owner_ok,
-                "mode_ok": mode_ok,
-                "requires_review": True,
-            })
+            if not self.reader.is_mode_at_most(mode, max_mode):
+                violations.append({
+                    "path": path,
+                    "reason": "mode_too_permissive",
+                    "mode_octal": mode,
+                    "max_mode_octal": max_mode,
+                })
 
-        return review_items
+        return violations
 
     @staticmethod
     def _compact_metadata(metadata):
@@ -370,6 +453,24 @@ class U63Runner(object):
             "is_regular_file": metadata.get("is_regular_file"),
             "is_directory": metadata.get("is_directory"),
         }
+
+    @staticmethod
+    def _compact_sudoers_d_analysis(analysis):
+        items = []
+
+        for item in analysis.get("items", []):
+            items.append({
+                "path": item.get("path"),
+                "name": item.get("name"),
+                "skipped": item.get("skipped"),
+                "skip_reason": item.get("skip_reason", ""),
+                "readable": item.get("readable", False),
+                "active_policy_line_count": item.get("active_policy_line_count", 0),
+                "risky_rule_count": len(item.get("risky_rules", [])),
+                "manual_rule_count": len(item.get("manual_rules", [])),
+            })
+
+        return items
 
     @staticmethod
     def _normalize_text_list(values):
