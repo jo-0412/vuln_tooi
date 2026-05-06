@@ -5,6 +5,7 @@ import json
 import sys
 
 from app.compat import PY2, to_text
+from app.output.english_text import translate_object, translate_text
 
 
 class ConsoleFormatter(object):
@@ -20,47 +21,47 @@ class ConsoleFormatter(object):
     def format(self, result, verbose=True):
         lines = []
 
-        lines.append("[{0}] {1}".format(result.code, result.name))
-        lines.append("상태: {0}".format(self._colorize_status(result.status)))
-        lines.append("중요도: {0}".format(result.severity))
-        lines.append("분류: {0}".format(result.category))
-        lines.append("root 권한 필요 여부: {0}".format(result.requires_root))
-        lines.append("점검 시각: {0}".format(result.checked_at))
+        lines.append("[{0}] {1}".format(result.code, translate_text(result.name)))
+        lines.append("Status: {0}".format(self._colorize_status(result.status)))
+        lines.append("Severity: {0}".format(result.severity))
+        lines.append("Category: {0}".format(result.category))
+        lines.append("Requires root privileges: {0}".format(result.requires_root))
+        lines.append("Checked at: {0}".format(result.checked_at))
         lines.append("")
 
-        lines.append("요약")
-        lines.append("- {0}".format(result.summary))
+        lines.append("Summary")
+        lines.append("- {0}".format(translate_text(result.summary)))
         lines.append("")
 
-        lines.append("상세")
-        for line in self._split_lines(result.detail):
+        lines.append("Detail")
+        for line in self._split_lines(translate_text(result.detail)):
             lines.append("- {0}".format(line))
         lines.append("")
 
         if result.remediation_summary or result.remediation_steps:
-            lines.append("조치 안내")
+            lines.append("Remediation")
             if result.remediation_summary:
-                lines.append("- {0}".format(result.remediation_summary))
+                lines.append("- {0}".format(translate_text(result.remediation_summary)))
             for step in result.remediation_steps:
-                lines.append("  * {0}".format(step))
+                lines.append("  * {0}".format(translate_text(step)))
             lines.append("")
 
         if verbose and result.evidences:
-            lines.append("수집 증적")
+            lines.append("Collected Evidence")
             for evidence in result.evidences:
                 lines.extend(self._format_evidence(evidence))
             lines.append("")
 
         if result.errors:
-            lines.append("오류")
+            lines.append("Errors")
             for error in result.errors:
-                lines.append("- {0}".format(error))
+                lines.append("- {0}".format(translate_text(error)))
             lines.append("")
 
         return "\n".join(lines).rstrip() + "\n"
 
     def format_json(self, result):
-        return json.dumps(result.to_dict(), ensure_ascii=False, indent=2)
+        return json.dumps(translate_object(result.to_dict()), ensure_ascii=False, indent=2)
 
     def print_result(self, result, verbose=True):
         output = self.format(result, verbose=verbose)
@@ -80,17 +81,17 @@ class ConsoleFormatter(object):
 
     def _format_evidence(self, evidence):
         lines = [
-            "- {0}".format(evidence.label),
+            "- {0}".format(translate_text(evidence.label)),
             "  source: {0}".format(evidence.source),
         ]
 
-        value_text = self._value_to_text(evidence.value)
+        value_text = translate_text(self._value_to_text(evidence.value))
         value_lines = value_text.splitlines() or [value_text]
 
         if len(value_lines) > self.max_value_lines:
             hidden_count = len(value_lines) - self.max_value_lines
             value_lines = value_lines[:self.max_value_lines]
-            value_lines.append("... 외 {0}줄 생략".format(hidden_count))
+            value_lines.append("... {0} additional lines omitted".format(hidden_count))
 
         lines.append("  value : {0}".format(value_lines[0]))
 
@@ -101,22 +102,22 @@ class ConsoleFormatter(object):
             lines.append("  state : {0}".format(evidence.status))
 
         if evidence.excerpt:
-            excerpt_lines = to_text(evidence.excerpt).splitlines()
+            excerpt_lines = translate_text(evidence.excerpt).splitlines()
             if excerpt_lines:
                 lines.append("  excerpt: {0}".format(excerpt_lines[0]))
                 for extra_line in excerpt_lines[1:3]:
                     lines.append("           {0}".format(extra_line))
                 if len(excerpt_lines) > 3:
-                    lines.append("           ... 외 {0}줄 생략".format(len(excerpt_lines) - 3))
+                    lines.append("           ... {0} additional lines omitted".format(len(excerpt_lines) - 3))
 
         if evidence.notes:
-            notes_lines = to_text(evidence.notes).splitlines()
+            notes_lines = translate_text(evidence.notes).splitlines()
             if notes_lines:
                 lines.append("  notes  : {0}".format(notes_lines[0]))
                 for extra_line in notes_lines[1:3]:
                     lines.append("           {0}".format(extra_line))
                 if len(notes_lines) > 3:
-                    lines.append("           ... 외 {0}줄 생략".format(len(notes_lines) - 3))
+                    lines.append("           ... {0} additional lines omitted".format(len(notes_lines) - 3))
 
         return lines
 
@@ -151,7 +152,7 @@ class ConsoleFormatter(object):
 
             hidden = len(items) - shown
             if hidden > 0:
-                limited["__truncated__"] = "... 외 {0}개 항목 생략".format(hidden)
+                limited["__truncated__"] = "... {0} additional items omitted".format(hidden)
 
             return limited
 
@@ -164,7 +165,7 @@ class ConsoleFormatter(object):
 
             hidden = len(seq) - len(limited)
             if hidden > 0:
-                limited.append("... 외 {0}개 항목 생략".format(hidden))
+                limited.append("... {0} additional items omitted".format(hidden))
 
             return limited
 
@@ -173,7 +174,7 @@ class ConsoleFormatter(object):
     def _summarize_leaf(self, value):
         text = to_text(value)
         if len(text) > 200:
-            return text[:200] + "...(생략)"
+            return text[:200] + "...(omitted)"
         return text
 
     def _colorize_status(self, status):

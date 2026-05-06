@@ -52,7 +52,7 @@ class CheckResult(object):
         self.checked_at = checked_at or now_iso()
 
         if self.status not in VALID_STATUSES:
-            raise ValueError("지원하지 않는 상태값입니다: {0}".format(self.status))
+            raise ValueError("Unsupported status value: {0}".format(self.status))
 
     def add_evidence(self, key, label, source, value,
                      status="info", excerpt=None, notes=None):
@@ -76,7 +76,7 @@ class CheckResult(object):
         normalized = str(status).upper()
 
         if normalized not in VALID_STATUSES:
-            raise ValueError("지원하지 않는 상태값입니다: {0}".format(normalized))
+            raise ValueError("Unsupported status value: {0}".format(normalized))
 
         self.status = normalized
 

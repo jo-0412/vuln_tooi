@@ -34,6 +34,7 @@ from app.main.u63_runner import U63Runner
 from app.main.u64_runner import U64Runner
 from app.main.u66_runner import U66Runner
 from app.output.console_formatter import ConsoleFormatter
+from app.output.english_text import translate_object
 from app.compat import to_text
 
 EXIT_CODE_MAP = {
@@ -46,27 +47,27 @@ EXIT_CODE_MAP = {
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="Debian 계열 리눅스 취약점 점검 도구"
+        description="Debian-based Linux vulnerability assessment tool"
     )
     parser.add_argument(
         "--json",
         action="store_true",
-        help="결과를 JSON 형식으로 출력",
+        help="Output results in JSON format",
     )
     parser.add_argument(
         "--quiet",
         action="store_true",
-        help="증적 출력 없이 핵심 결과만 표시",
+        help="Show only the core result without evidence output",
     )
     parser.add_argument(
         "--no-color",
         action="store_true",
-        help="콘솔 색상 출력 비활성화",
+        help="Disable colored console output",
     )
     parser.add_argument(
         "--check",
         default="ALL",
-        help="실행할 점검 항목 코드 (U-01, U-02, ALL)",
+        help="Check code to run (U-01, U-02, ALL)",
     )
     return parser
 
@@ -184,7 +185,7 @@ def main():
     runners = build_runners(args.check)
     if runners is None:
         print(
-            "현재 지원하지 않는 점검 항목입니다: {0}".format(args.check),
+            "Unsupported check code: {0}".format(args.check),
             file=sys.stderr
         )
         return 4
@@ -196,7 +197,7 @@ def main():
     if args.json:
         print(
             json.dumps(
-                [result.to_dict() for result in results],
+                [translate_object(result.to_dict()) for result in results],
                 ensure_ascii=False,
                 indent=2
             )
